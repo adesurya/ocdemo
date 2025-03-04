@@ -1,0 +1,203 @@
+<%- include('partials/header') %>
+
+<div class="max-w-6xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Detail Komparasi</h2>
+            <a href="/history" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-1"></i> Kembali ke Riwayat
+            </a>
+        </div>
+        
+        <div class="mb-6 border-b pb-4">
+            <div class="flex flex-wrap md:flex-nowrap justify-between">
+                <div class="w-full md:w-1/2 mb-4 md:mb-0">
+                    <p class="text-gray-600 mb-1">Test Case:</p>
+                    <p class="text-xl font-medium"><%= comparison.testCase %></p>
+                </div>
+                
+                <div class="w-full md:w-1/2 flex flex-col md:items-end">
+                    <div class="mb-2">
+                        <p class="text-gray-600 mb-1">Tanggal:</p>
+                        <p class="font-medium"><%= new Date(comparison.createdAt).toLocaleString('id-ID') %></p>
+                    </div>
+                    
+                    <div>
+                        <% 
+                            let differences = JSON.parse(comparison.differences);
+                            let count = Object.keys(differences).length;
+                            let badgeClass = count > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+                        %>
+                        <span class="px-3 py-1 text-sm rounded-full <%= badgeClass %>">
+                            <%= count %> perbedaan terdeteksi
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- HPUX Image -->
+            <div class="border rounded-md overflow-hidden">
+                <div class="bg-gray-100 px-4 py-2 font-medium">HPUX Image</div>
+                <div class="p-2">
+                    <img src="/<%= comparison.hpuxImagePath %>" alt="HPUX Image" class="w-full h-auto">
+                </div>
+            </div>
+            
+            <!-- Linux Image -->
+            <div class="border rounded-md overflow-hidden">
+                <div class="bg-gray-100 px-4 py-2 font-medium">Linux Image</div>
+                <div class="p-2">
+                    <img src="/<%= comparison.linuxImagePath %>" alt="Linux Image" class="w-full h-auto">
+                </div>
+            </div>
+        </div>
+        
+        <div class="border-t pt-4">
+            <h3 class="text-xl font-semibold mb-4">Hasil Ekstraksi dan Perbandingan</h3>
+            
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <button id="toggleDifferences" class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-filter mr-1"></i> Tampilkan Hanya Perbedaan
+                        </button>
+                    </div>
+                    
+                    <div>
+                        <button id="downloadJson" class="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 text-sm">
+                            <i class="fas fa-download mr-1"></i> Unduh JSON
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- HPUX Results -->
+                <div class="result-container">
+                    <h4 class="text-lg font-semibold mb-3 bg-gray-100 p-2 rounded-md">Hasil HPUX</h4>
+                    <div id="hpuxResults" class="p-4 border border-gray-200 rounded-md bg-gray-50 overflow-auto max-h-96">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="hpuxResultsBody">
+                                <% 
+                                    const hpuxData = JSON.parse(comparison.hpuxExtractedData);
+                                    for (const [key, value] of Object.entries(hpuxData)) {
+                                        const hasDiff = differences.hasOwnProperty(key);
+                                        const diffClass = hasDiff ? 'data-diff' : '';
+                                %>
+                                    <tr class="<%= diffClass %> <%= hasDiff ? 'bg-yellow-50' : '' %>">
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900"><%= key %></td>
+                                        <td class="px-3 py-2 text-sm text-gray-500">
+                                            <% if (hasDiff) { %>
+                                                <span class="bg-yellow-200"><%= typeof value === 'object' ? JSON.stringify(value) : value %></span>
+                                            <% } else { %>
+                                                <%= typeof value === 'object' ? JSON.stringify(value) : value %>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Linux Results -->
+                <div class="result-container">
+                    <h4 class="text-lg font-semibold mb-3 bg-gray-100 p-2 rounded-md">Hasil Linux</h4>
+                    <div id="linuxResults" class="p-4 border border-gray-200 rounded-md bg-gray-50 overflow-auto max-h-96">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="linuxResultsBody">
+                                <% 
+                                    const linuxData = JSON.parse(comparison.linuxExtractedData);
+                                    for (const [key, value] of Object.entries(linuxData)) {
+                                        const hasDiff = differences.hasOwnProperty(key);
+                                        const diffClass = hasDiff ? 'data-diff' : '';
+                                %>
+                                    <tr class="<%= diffClass %> <%= hasDiff ? 'bg-yellow-50' : '' %>">
+                                        <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900"><%= key %></td>
+                                        <td class="px-3 py-2 text-sm text-gray-500">
+                                            <% if (hasDiff) { %>
+                                                <span class="bg-yellow-200"><%= typeof value === 'object' ? JSON.stringify(value) : value %></span>
+                                            <% } else { %>
+                                                <%= typeof value === 'object' ? JSON.stringify(value) : value %>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle differences filter
+        const toggleButton = document.getElementById('toggleDifferences');
+        let showOnlyDifferences = false;
+        
+        toggleButton.addEventListener('click', function() {
+            showOnlyDifferences = !showOnlyDifferences;
+            
+            // Update button text
+            if (showOnlyDifferences) {
+                this.innerHTML = '<i class="fas fa-filter mr-1"></i> Tampilkan Semua Data';
+            } else {
+                this.innerHTML = '<i class="fas fa-filter mr-1"></i> Tampilkan Hanya Perbedaan';
+            }
+            
+            // Filter rows
+            const rows = document.querySelectorAll('#hpuxResultsBody tr, #linuxResultsBody tr');
+            rows.forEach(row => {
+                if (showOnlyDifferences) {
+                    row.style.display = row.classList.contains('data-diff') ? '' : 'none';
+                } else {
+                    row.style.display = '';
+                }
+            });
+        });
+        
+        // Download JSON data
+        document.getElementById('downloadJson').addEventListener('click', function() {
+            const comparisonData = {
+                id: '<%= comparison.id %>',
+                testCase: '<%= comparison.testCase %>',
+                createdAt: '<%= comparison.createdAt %>',
+                hpuxImagePath: '<%= comparison.hpuxImagePath %>',
+                linuxImagePath: '<%= comparison.linuxImagePath %>',
+                hpuxExtractedData: <%= comparison.hpuxExtractedData %>,
+                linuxExtractedData: <%= comparison.linuxExtractedData %>,
+                differences: <%= comparison.differences %>
+            };
+            
+            // Create a JSON file and trigger download
+            const blob = new Blob([JSON.stringify(comparisonData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `comparison-<%= comparison.id %>.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    });
+</script>

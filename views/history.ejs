@@ -1,0 +1,185 @@
+<%- include('partials/header') %>
+
+<div class="max-w-6xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">Riwayat Komparasi</h2>
+        
+        <div class="mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4">
+                <div class="flex items-center mb-3 md:mb-0">
+                    <span class="text-gray-600 mr-2">Total:</span>
+                    <span class="font-medium text-blue-600"><%= comparisons.length %> komparasi</span>
+                </div>
+                
+                <div class="relative w-full md:w-64">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Cari Test Case..." 
+                    >
+                    <div class="absolute left-3 top-2.5 text-gray-400">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200" id="comparisonsTable">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Test Case</th>
+                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perbedaan</th>
+                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <% if (comparisons && comparisons.length > 0) { %>
+                        <% comparisons.forEach(comparison => { %>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900"><%= comparison.testCase %></td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500"><%= new Date(comparison.createdAt).toLocaleString('id-ID') %></td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    <% 
+                                        let differences = JSON.parse(comparison.differences);
+                                        let count = Object.keys(differences).length;
+                                        let badgeClass = count > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+                                    %>
+                                    <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
+                                        <%= count %> perbedaan
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    <div class="flex space-x-2">
+                                        <a 
+                                            href="/comparison/<%= comparison.id %>" 
+                                            class="text-blue-600 hover:text-blue-800"
+                                            title="Lihat Detail"
+                                        >
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button 
+                                            class="text-blue-600 hover:text-blue-800 download-json" 
+                                            data-id="<%= comparison.id %>"
+                                            title="Unduh JSON"
+                                        >
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="4" class="px-4 py-6 text-center text-gray-500">
+                                <p>Belum ada riwayat komparasi. Mulai dengan melakukan komparasi di menu Komparasi File!</p>
+                            </td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-6" id="noResults" style="display: none;">
+            <div class="text-center py-8 text-gray-500">
+                <p>Tidak ada hasil yang sesuai dengan pencarian Anda.</p>
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-between items-center">
+            <button id="exportAllButton" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                <i class="fas fa-file-export mr-2"></i> Export Semua Data
+            </button>
+            
+            <div class="flex items-center space-x-2">
+                <span class="text-gray-600">Halaman:</span>
+                <div class="flex space-x-1" id="pagination"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables
+        const searchInput = document.getElementById('searchInput');
+        const table = document.getElementById('comparisonsTable');
+        const noResults = document.getElementById('noResults');
+        const rows = table.querySelectorAll('tbody tr');
+        const exportAllButton = document.getElementById('exportAllButton');
+        
+        // Items per page
+        const itemsPerPage = 10;
+        let currentPage = 1;
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            let foundResults = false;
+            
+            rows.forEach(row => {
+                const testCase = row.cells[0].textContent.toLowerCase();
+                if (testCase.includes(searchTerm)) {
+                    row.style.display = '';
+                    foundResults = true;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no results message
+            noResults.style.display = foundResults ? 'none' : 'block';
+        });
+        
+        // Download JSON for a comparison
+        document.querySelectorAll('.download-json').forEach(button => {
+            button.addEventListener('click', async () => {
+                const comparisonId = button.getAttribute('data-id');
+                try {
+                    const response = await fetch(`/api/comparison/${comparisonId}`);
+                    const data = await response.json();
+                    
+                    // Create a JSON file and trigger download
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `comparison-${comparisonId}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Error downloading comparison:', error);
+                    alert('Failed to download comparison data.');
+                }
+            });
+        });
+        
+        // Export all data
+        exportAllButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/comparisons');
+                const data = await response.json();
+                
+                // Create a JSON file and trigger download
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `all-comparisons-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error exporting all comparisons:', error);
+                alert('Failed to export all comparison data.');
+            }
+        });
+    });
+</script>

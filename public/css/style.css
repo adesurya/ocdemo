@@ -1,0 +1,106 @@
+/* Custom styles for the OCR comparison app */
+
+/* Navigation styles */
+header nav a.active {
+    font-weight: 600;
+    border-bottom: 2px solid white;
+}
+
+/* Mobile navigation */
+@media (max-width: 768px) {
+    .mobile-menu {
+        transition: all 0.3s ease-in-out;
+        max-height: 0;
+        overflow: hidden;
+    }
+    
+    .mobile-menu.open {
+        max-height: 200px;
+    }
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Drag and drop styling */
+.upload-container .dragover {
+    border-color: #3B82F6;
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Result highlights */
+.highlight-diff {
+    background-color: #FEFCE8;
+    padding: 2px;
+    border-radius: 2px;
+    border: 1px solid #FEF08A;
+}
+
+/* Loading animation */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Badge styling */
+.badge {
+    border-radius: 9999px;
+    font-weight: 500;
+}
+
+/* Badge colors */
+.badge-success {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.badge-warning {
+    background-color: #FEF3C7;
+    color: #92400E;
+}
+
+.badge-error {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .max-h-96 {
+        max-height: 300px;
+    }
+}
