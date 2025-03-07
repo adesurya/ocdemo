@@ -1,0 +1,178 @@
+<%- include('../partials/header') %>
+
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Edit Test Case</h2>
+            <a href="/test-cases/<%= testCase.id %>" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Test Case
+            </a>
+        </div>
+        
+        <form action="/test-cases/<%= testCase.id %>?_method=PUT" method="POST" enctype="multipart/form-data">
+            <div class="mb-6">
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Test Case Name <span class="text-red-500">*</span></label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    value="<%= testCase.name %>"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    required
+                >
+            </div>
+            
+            <div class="mb-6">
+                <label for="evidenceFile" class="block text-sm font-medium text-gray-700 mb-1">Evidence File</label>
+                <div class="mb-4 bg-gray-50 rounded-md p-4 border">
+                    <div class="flex items-center">
+                        <% 
+                            // Determine file icon based on file type
+                            let iconClass = 'fa-file';
+                            const fileType = testCase.fileType.toLowerCase();
+                            
+                            if (fileType.includes('image')) {
+                                iconClass = 'fa-file-image';
+                            } else if (fileType.includes('pdf')) {
+                                iconClass = 'fa-file-pdf';
+                            } else if (fileType.includes('word') || fileType.includes('doc')) {
+                                iconClass = 'fa-file-word';
+                            } else if (fileType.includes('excel') || fileType.includes('sheet') || fileType.includes('csv')) {
+                                iconClass = 'fa-file-excel';
+                            } else if (fileType.includes('zip') || fileType.includes('archive')) {
+                                iconClass = 'fa-file-archive';
+                            } else if (fileType.includes('text')) {
+                                iconClass = 'fa-file-alt';
+                            }
+                        %>
+                        <i class="fas <%= iconClass %> text-3xl mr-3 text-gray-400"></i>
+                        <div>
+                            <p class="font-medium">Current file: <%= testCase.originalFilename %></p>
+                            <p class="text-sm text-gray-500">
+                                <%= testCase.fileType %> • <%= typeof formatFileSize === 'function' ? formatFileSize(testCase.fileSize) : testCase.fileSize + ' bytes' %>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- File preview for images -->
+                    <% if (fileType.includes('image')) { %>
+                        <div class="mt-4 border rounded-md overflow-hidden max-w-md mx-auto">
+                            <img 
+                                src="/<%= testCase.evidencePath %>" 
+                                alt="<%= testCase.name %> evidence" 
+                                class="max-w-full h-auto"
+                            >
+                        </div>
+                    <% } %>
+                </div>
+                
+                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                    <div class="space-y-1 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="flex text-sm text-gray-600">
+                            <label for="evidenceFile" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                <span>Upload a new file</span>
+                                <input id="evidenceFile" name="evidenceFile" type="file" class="sr-only">
+                            </label>
+                            <p class="pl-1">or drag and drop</p>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            Any file format up to 10MB (leave empty to keep the current file)
+                        </p>
+                    </div>
+                </div>
+                <div id="file-selected" class="mt-2 text-sm text-gray-500 hidden">
+                    Selected file: <span id="file-name" class="font-medium"></span>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea 
+                    id="notes" 
+                    name="notes" 
+                    rows="4" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Add any notes or context for this test case..."
+                ><%= testCase.notes || '' %></textarea>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <a 
+                    href="/test-cases/<%= testCase.id %>" 
+                    class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3"
+                >
+                    Cancel
+                </a>
+                <button 
+                    type="submit" 
+                    class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Update Test Case
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileInput = document.getElementById('evidenceFile');
+        const fileSelected = document.getElementById('file-selected');
+        const fileName = document.getElementById('file-name');
+        
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                fileName.textContent = this.files[0].name;
+                fileSelected.classList.remove('hidden');
+            } else {
+                fileSelected.classList.add('hidden');
+            }
+        });
+        
+        // Drag and drop functionality
+        const dropZone = document.querySelector('.border-dashed');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropZone.classList.add('border-blue-300', 'bg-blue-50');
+        }
+        
+        function unhighlight() {
+            dropZone.classList.remove('border-blue-300', 'bg-blue-50');
+        }
+        
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files && files.length > 0) {
+                fileInput.files = files;
+                fileName.textContent = files[0].name;
+                fileSelected.classList.remove('hidden');
+            }
+        }
+    });
+</script>
+
+<%- include('../partials/footer') %>

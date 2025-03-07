@@ -1,0 +1,537 @@
+<%- include('../partials/header') %>
+
+<div class="max-w-full mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+            <div>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800">Hasil Komparasi CSV</h2>
+                <p class="text-gray-600 mt-1">Test Case: <span class="font-medium"><%= comparison.testCase %></span></p>
+            </div>
+            
+            <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+                <a href="/csv-comparison" class="text-blue-600 hover:text-blue-800 flex items-center justify-center">
+                    <i class="fas fa-arrow-left mr-1"></i> Kembali
+                </a>
+                <a 
+                    href="/csv-comparison/download/<%= comparison.id %>" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
+                >
+                    <i class="fas fa-download mr-2"></i> Download JSON
+                </a>
+            </div>
+        </div>
+        
+        <div class="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div class="mb-4 md:mb-0">
+                <div class="flex items-center">
+                    <div class="mr-6">
+                        <span class="block text-sm text-gray-500">HPUX File:</span>
+                        <span class="font-medium text-gray-700"><%= comparison.hpuxFileName %></span>
+                    </div>
+                    <div>
+                        <span class="block text-sm text-gray-500">Linux File:</span>
+                        <span class="font-medium text-gray-700"><%= comparison.linuxFileName %></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <% if (comparison.comparisonResult.identical) { %>
+                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                        <i class="fas fa-check-circle mr-1"></i> Files are identical
+                    </span>
+                <% } else { %>
+                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                        <i class="fas fa-exclamation-circle mr-1"></i> <%= comparison.comparisonResult.differenceCount %> differences found
+                    </span>
+                <% } %>
+            </div>
+        </div>
+        
+        <div class="border-t pt-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-700">Data Comparison</h3>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="showDifferencesOnly" class="mr-1">
+                        <label for="showDifferencesOnly" class="text-sm text-gray-600">Show differences only</label>
+                    </div>
+                    
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="searchTable" 
+                            class="w-48 pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Search table..."
+                        >
+                        <div class="absolute left-2 top-2 text-gray-400">
+                            <i class="fas fa-search text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Side-by-side tables -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- HPUX Table -->
+                <div>
+                    <h4 class="text-md font-semibold bg-blue-50 text-blue-700 p-2 mb-2 rounded">HPUX Data</h4>
+                    <div class="responsive-table">
+                        <table class="min-w-full border border-gray-200" id="hpuxTable">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <% 
+                                    // Get all columns from HPUX data
+                                    const hpuxColumns = new Set();
+                                    
+                                    // Add common columns for most CSV files
+                                    ['Offset', 'No', 'Name', 'DESC', 'Form', 'VLen', 'FTyp', 'Len', 'Data'].forEach(col => {
+                                        hpuxColumns.add(col);
+                                    });
+                                    
+                                    // Add any other columns from the actual data
+                                    comparison.hpuxData.forEach(row => {
+                                        Object.keys(row).forEach(col => hpuxColumns.add(col));
+                                    });
+                                    
+                                    // Sort columns (keep common ones at the beginning)
+                                    const commonCols = ['Offset', 'No', 'Name', 'DESC', 'Form', 'VLen', 'FTyp', 'Len', 'Data'];
+                                    const sortedHpuxColumns = [...hpuxColumns].sort((a, b) => {
+                                        const aIndex = commonCols.indexOf(a);
+                                        const bIndex = commonCols.indexOf(b);
+                                        
+                                        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                                        if (aIndex !== -1) return -1;
+                                        if (bIndex !== -1) return 1;
+                                        return a.localeCompare(b);
+                                    });
+                                    %>
+                                    
+                                    <!-- Row Identifier Column -->
+                                    <th class="px-2 py-2 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Row ID
+                                    </th>
+                                    
+                                    <% sortedHpuxColumns.forEach(column => { %>
+                                        <th class="px-2 py-2 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <%= column %>
+                                        </th>
+                                    <% }); %>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <% 
+                                // Map of all rows by identifier for easier lookup
+                                const rowMap = new Map();
+                                
+                                // Create map of all differences
+                                const diffMap = new Map();
+                                
+                                // Process differences
+                                Object.entries(comparison.comparisonResult.differences).forEach(([rowId, diff]) => {
+                                    diffMap.set(rowId, diff);
+                                });
+                                
+                                // Process HPUX data 
+                                comparison.hpuxData.forEach(row => {
+                                    // Determine row identifier (prefer No or Offset)
+                                    const rowId = row.No || row.Offset || JSON.stringify(row);
+                                    rowMap.set(rowId, { hpux: row, linux: null });
+                                    
+                                    // Check if Linux also has this row
+                                    const linuxRow = comparison.linuxData.find(lr => 
+                                        (lr.No && lr.No === row.No) || 
+                                        (lr.Offset && lr.Offset === row.Offset)
+                                    );
+                                    
+                                    if (linuxRow) {
+                                        rowMap.get(rowId).linux = linuxRow;
+                                    }
+                                });
+                                
+                                // Add Linux-only rows
+                                comparison.linuxData.forEach(row => {
+                                    const rowId = row.No || row.Offset || JSON.stringify(row);
+                                    if (!rowMap.has(rowId)) {
+                                        rowMap.set(rowId, { hpux: null, linux: row });
+                                    }
+                                });
+                                
+                                // Sort rowIds numerically if possible
+                                const sortedRowIds = [...rowMap.keys()].sort((a, b) => {
+                                    const numA = parseInt(a);
+                                    const numB = parseInt(b);
+                                    if (!isNaN(numA) && !isNaN(numB)) {
+                                        return numA - numB;
+                                    }
+                                    return String(a).localeCompare(String(b));
+                                });
+                                
+                                // Helper function to check if a cell is different
+                                function isCellDifferent(rowId, column, value) {
+                                    if (!diffMap.has(rowId)) return false;
+                                    
+                                    const diff = diffMap.get(rowId);
+                                    
+                                    if (diff.onlyIn) return true;
+                                    
+                                    return diff.diffColumns && 
+                                           diff.diffColumns[column] && 
+                                           diff.diffColumns[column].hpux === value;
+                                }
+                                
+                                // Function to determine row class
+                                function getRowClass(rowId) {
+                                    return diffMap.has(rowId) ? 'diff-row' : '';
+                                }
+                                
+                                // Render HPUX data
+                                sortedRowIds.forEach(rowId => {
+                                    const rowData = rowMap.get(rowId);
+                                    const hpuxRow = rowData.hpux;
+                                    
+                                    if (hpuxRow) {
+                                        const rowClass = getRowClass(rowId);
+                                %>
+                                    <tr class="<%= rowClass %>" data-row-id="<%= rowId %>">
+                                        <!-- Row ID -->
+                                        <td class="px-2 py-2 text-sm font-medium text-gray-900">
+                                            <%= rowId %>
+                                        </td>
+                                        
+                                        <!-- Data cells -->
+                                        <% sortedHpuxColumns.forEach(column => { 
+                                            const value = hpuxRow[column] !== undefined ? hpuxRow[column] : '';
+                                            const isDifferent = isCellDifferent(rowId, column, value);
+                                            const cellClass = isDifferent ? 'bg-yellow-100' : '';
+                                        %>
+                                            <td class="px-2 py-2 text-sm text-gray-500 <%= cellClass %>">
+                                                <%= value %>
+                                            </td>
+                                        <% }); %>
+                                    </tr>
+                                <% 
+                                    }
+                                }); 
+                                %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Linux Table -->
+                <div>
+                    <h4 class="text-md font-semibold bg-green-50 text-green-700 p-2 mb-2 rounded">Linux Data</h4>
+                    <div class="responsive-table">
+                        <table class="min-w-full border border-gray-200" id="linuxTable">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <% 
+                                    // Get all columns from Linux data
+                                    const linuxColumns = new Set();
+                                    
+                                    // Add common columns for most CSV files
+                                    ['Offset', 'No', 'Name', 'DESC', 'Form', 'VLen', 'FTyp', 'Len', 'Data'].forEach(col => {
+                                        linuxColumns.add(col);
+                                    });
+                                    
+                                    // Add any other columns from the actual data
+                                    comparison.linuxData.forEach(row => {
+                                        Object.keys(row).forEach(col => linuxColumns.add(col));
+                                    });
+                                    
+                                    // Sort columns (keep common ones at the beginning)
+                                    const sortedLinuxColumns = [...linuxColumns].sort((a, b) => {
+                                        const aIndex = commonCols.indexOf(a);
+                                        const bIndex = commonCols.indexOf(b);
+                                        
+                                        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                                        if (aIndex !== -1) return -1;
+                                        if (bIndex !== -1) return 1;
+                                        return a.localeCompare(b);
+                                    });
+                                    %>
+                                    
+                                    <!-- Row Identifier Column -->
+                                    <th class="px-2 py-2 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Row ID
+                                    </th>
+                                    
+                                    <% sortedLinuxColumns.forEach(column => { %>
+                                        <th class="px-2 py-2 bg-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <%= column %>
+                                        </th>
+                                    <% }); %>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <% 
+                                // Helper function to check if a cell is different for Linux
+                                function isLinuxCellDifferent(rowId, column, value) {
+                                    if (!diffMap.has(rowId)) return false;
+                                    
+                                    const diff = diffMap.get(rowId);
+                                    
+                                    if (diff.onlyIn) return true;
+                                    
+                                    return diff.diffColumns && 
+                                           diff.diffColumns[column] && 
+                                           diff.diffColumns[column].linux === value;
+                                }
+                                
+                                // Render Linux data
+                                sortedRowIds.forEach(rowId => {
+                                    const rowData = rowMap.get(rowId);
+                                    const linuxRow = rowData.linux;
+                                    
+                                    if (linuxRow) {
+                                        const rowClass = getRowClass(rowId);
+                                %>
+                                    <tr class="<%= rowClass %>" data-row-id="<%= rowId %>">
+                                        <!-- Row ID -->
+                                        <td class="px-2 py-2 text-sm font-medium text-gray-900">
+                                            <%= rowId %>
+                                        </td>
+                                        
+                                        <!-- Data cells -->
+                                        <% sortedLinuxColumns.forEach(column => { 
+                                            const value = linuxRow[column] !== undefined ? linuxRow[column] : '';
+                                            const isDifferent = isLinuxCellDifferent(rowId, column, value);
+                                            const cellClass = isDifferent ? 'bg-yellow-100' : '';
+                                        %>
+                                            <td class="px-2 py-2 text-sm text-gray-500 <%= cellClass %>">
+                                                <%= value %>
+                                            </td>
+                                        <% }); %>
+                                    </tr>
+                                <% 
+                                    }
+                                }); 
+                                %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="noResults" class="mt-6 text-center py-8 text-gray-500 hidden">
+                <p>No matching results found.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Styles for CSV Comparison */
+
+/* Table styling */
+.responsive-table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Row highlighting */
+.diff-row {
+  background-color: rgba(254, 240, 138, 0.15);
+}
+
+/* Hover highlighting for corresponding rows */
+tr.bg-gray-100 {
+  background-color: rgba(243, 244, 246, 0.7);
+  transition: background-color 0.2s ease;
+}
+
+/* Cell highlighting */
+.bg-yellow-100 {
+  background-color: rgba(254, 240, 138, 0.5);
+  position: relative;
+}
+
+/* Add a subtle indicator for different cells */
+.bg-yellow-100::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 6px 6px 0;
+  border-color: transparent #EAB308 transparent transparent;
+}
+
+/* Add some spacing to tables */
+#hpuxTable, #linuxTable {
+  margin-bottom: 1rem;
+}
+
+/* Make sure tables fit their containers */
+#hpuxTable, #linuxTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Ensure fixed header width */
+#hpuxTable th, #linuxTable th {
+  min-width: 80px;
+}
+
+/* Table row animation */
+.diff-row {
+  animation: highlight-fade 2s ease-out;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background-color: rgba(254, 240, 138, 0.5);
+  }
+  100% {
+    background-color: rgba(254, 240, 138, 0.15);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .grid-cols-1 {
+    grid-template-columns: 1fr;
+  }
+  
+  #hpuxTable, #linuxTable {
+    margin-bottom: 2rem;
+  }
+}
+
+/* Ensure consistent sizing */
+#hpuxTable td, #linuxTable td {
+  word-break: break-word;
+  max-width: 200px;
+}
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get elements
+        const showDifferencesOnly = document.getElementById('showDifferencesOnly');
+        const searchInput = document.getElementById('searchTable');
+        const hpuxTable = document.getElementById('hpuxTable');
+        const linuxTable = document.getElementById('linuxTable');
+        const hpuxRows = hpuxTable.querySelectorAll('tbody tr');
+        const linuxRows = linuxTable.querySelectorAll('tbody tr');
+        const noResults = document.getElementById('noResults');
+        
+        // Highlight the same row ID when hovering
+        hpuxRows.forEach(row => {
+            const rowId = row.getAttribute('data-row-id');
+            
+            row.addEventListener('mouseenter', () => {
+                // Highlight the corresponding row in Linux table
+                const correspondingRow = linuxTable.querySelector(`tr[data-row-id="${rowId}"]`);
+                if (correspondingRow) {
+                    correspondingRow.classList.add('bg-gray-100');
+                }
+                row.classList.add('bg-gray-100');
+            });
+            
+            row.addEventListener('mouseleave', () => {
+                // Remove highlight
+                const correspondingRow = linuxTable.querySelector(`tr[data-row-id="${rowId}"]`);
+                if (correspondingRow) {
+                    correspondingRow.classList.remove('bg-gray-100');
+                }
+                row.classList.remove('bg-gray-100');
+            });
+        });
+        
+        // Do the same for Linux rows
+        linuxRows.forEach(row => {
+            const rowId = row.getAttribute('data-row-id');
+            
+            row.addEventListener('mouseenter', () => {
+                // Highlight the corresponding row in HPUX table
+                const correspondingRow = hpuxTable.querySelector(`tr[data-row-id="${rowId}"]`);
+                if (correspondingRow) {
+                    correspondingRow.classList.add('bg-gray-100');
+                }
+                row.classList.add('bg-gray-100');
+            });
+            
+            row.addEventListener('mouseleave', () => {
+                // Remove highlight
+                const correspondingRow = hpuxTable.querySelector(`tr[data-row-id="${rowId}"]`);
+                if (correspondingRow) {
+                    correspondingRow.classList.remove('bg-gray-100');
+                }
+                row.classList.remove('bg-gray-100');
+            });
+        });
+        
+        // Filter function to combine both filters
+        function filterTables() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const showOnlyDiffs = showDifferencesOnly.checked;
+            
+            let visibleCount = 0;
+            
+            // Helper function to check if row matches filter criteria
+            function shouldShowRow(row) {
+                const rowId = row.getAttribute('data-row-id');
+                
+                // Apply diff filter
+                if (showOnlyDiffs && !row.classList.contains('diff-row')) {
+                    return false;
+                }
+                
+                // Apply search filter
+                if (searchTerm) {
+                    let rowContainsSearch = false;
+                    for (let cell of row.cells) {
+                        if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                            rowContainsSearch = true;
+                            break;
+                        }
+                    }
+                    return rowContainsSearch;
+                }
+                
+                return true;
+            }
+            
+            // Filter HPUX rows
+            hpuxRows.forEach(row => {
+                const rowId = row.getAttribute('data-row-id');
+                const shouldShow = shouldShowRow(row);
+                
+                row.style.display = shouldShow ? '' : 'none';
+                if (shouldShow) visibleCount++;
+                
+                // Update Linux table accordingly
+                const correspondingLinuxRow = linuxTable.querySelector(`tr[data-row-id="${rowId}"]`);
+                if (correspondingLinuxRow) {
+                    correspondingLinuxRow.style.display = shouldShow ? '' : 'none';
+                }
+            });
+            
+            // Check for Linux-only rows
+            linuxRows.forEach(row => {
+                const rowId = row.getAttribute('data-row-id');
+                const correspondingHpuxRow = hpuxTable.querySelector(`tr[data-row-id="${rowId}"]`);
+                
+                if (!correspondingHpuxRow) {
+                    const shouldShow = shouldShowRow(row);
+                    row.style.display = shouldShow ? '' : 'none';
+                    if (shouldShow) visibleCount++;
+                }
+            });
+            
+            // Show/hide "no results" message
+            noResults.classList.toggle('hidden', visibleCount > 0);
+        }
+        
+        // Add event listeners
+        showDifferencesOnly.addEventListener('change', filterTables);
+        searchInput.addEventListener('input', filterTables);
+    });
+</script>
+
+<%- include('../partials/footer') %>
