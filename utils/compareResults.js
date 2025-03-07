@@ -69,48 +69,66 @@ function compareExtractedData(hpuxData, linuxData) {
    * @returns {Object} - Formatted results for display
    */
   function formatComparisonResults(hpuxData, linuxData, differences) {
-    function getFormattedValue(obj, key, source) {
-      if (!obj.hasOwnProperty(key)) {
-        return '<span class="text-red-500">Key not present</span>';
-      }
-      
-      const value = obj[key];
-      
-      // If this key has differences and the current source is in the differences
-      if (differences.hasOwnProperty(key) && differences[key].hasOwnProperty(source)) {
-        // Highlight the value
-        if (typeof value === 'object' && value !== null) {
-          return `<span class="bg-yellow-200">${JSON.stringify(value)}</span>`;
-        } else {
-          return `<span class="bg-yellow-200">${value}</span>`;
-        }
-      }
-      
-      // No difference or not in this source
-      if (typeof value === 'object' && value !== null) {
-        return JSON.stringify(value);
-      } else {
-        return value;
-      }
-    }
-    
     // Get all keys from both objects
     const allKeys = new Set([...Object.keys(hpuxData), ...Object.keys(linuxData)]);
     
-    // Create formatted display for both sides
-    const formattedHpux = {};
-    const formattedLinux = {};
-    
-    for (const key of allKeys) {
-      formattedHpux[key] = getFormattedValue(hpuxData, key, 'hpux');
-      formattedLinux[key] = getFormattedValue(linuxData, key, 'linux');
+    // Generate HTML table for display
+    function generateTableHTML(data, source) {
+      let tableHTML = `
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+              <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+      `;
+      
+      // Add rows for each key
+      let i = 0;
+      for (const key of allKeys) {
+        const rowClass = i % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+        const hasDiff = differences.hasOwnProperty(key);
+        const diffClass = hasDiff ? 'bg-yellow-50' : '';
+        
+        tableHTML += `<tr class="${rowClass} ${diffClass}">`;
+        tableHTML += `<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">${key}</td>`;
+        
+        // Check if key exists in this data
+        if (data.hasOwnProperty(key)) {
+          const value = data[key];
+          const displayValue = typeof value === 'object' && value !== null ? 
+            JSON.stringify(value) : value;
+            
+          // Apply highlighting for differences
+          if (hasDiff && differences[key].hasOwnProperty(source)) {
+            tableHTML += `<td class="px-3 py-2 text-sm text-gray-500"><span class="bg-yellow-200">${displayValue}</span></td>`;
+          } else {
+            tableHTML += `<td class="px-3 py-2 text-sm text-gray-500">${displayValue}</td>`;
+          }
+        } else {
+          tableHTML += `<td class="px-3 py-2 text-sm text-red-500">Key not present</td>`;
+        }
+        
+        tableHTML += `</tr>`;
+        i++;
+      }
+      
+      tableHTML += `
+          </tbody>
+        </table>
+      `;
+      
+      return tableHTML;
     }
     
     return {
-      hpux: formattedHpux,
-      linux: formattedLinux
+      hpuxTableHTML: generateTableHTML(hpuxData, 'hpux'),
+      linuxTableHTML: generateTableHTML(linuxData, 'linux')
     };
   }
+  
   
   module.exports = {
     compareExtractedData,

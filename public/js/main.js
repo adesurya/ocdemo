@@ -9,101 +9,225 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Elements
-    const form = document.getElementById('comparison-form');
-    const testCaseInput = document.getElementById('testCase');
-    const hpuxDropzone = document.getElementById('hpuxDropzone');
-    const linuxDropzone = document.getElementById('linuxDropzone');
-    const hpuxInput = document.getElementById('hpuxImage');
-    const linuxInput = document.getElementById('linuxImage');
-    const hpuxPreview = document.getElementById('hpuxPreview');
-    const linuxPreview = document.getElementById('linuxPreview');
-    const hpuxPreviewImage = document.getElementById('hpuxPreviewImage');
-    const linuxPreviewImage = document.getElementById('linuxPreviewImage');
-    const removeHpuxButton = document.getElementById('removeHpuxImage');
-    const removeLinuxButton = document.getElementById('removeLinuxImage');
-    const checkButton = document.getElementById('checkButton');
-    const buttonText = document.getElementById('buttonText');
-    const loadingSpinner = document.getElementById('loadingSpinner');
+    // Cek dulu apakah halaman ini halaman komparasi (form)
+    // Sehingga kita tidak mencoba mencari elemen yang tidak ada di halaman detail atau history
+    const comparisonForm = document.getElementById('comparison-form');
+    if (comparisonForm) {
+        setupComparasionFormHandlers();
+    }
+    
+    // Cek untuk halaman detail
     const resultsSection = document.getElementById('results-section');
-    const testCaseDisplay = document.getElementById('testCaseDisplay');
-    const differenceCount = document.getElementById('differenceCount');
-    const hpuxResultImage = document.getElementById('hpuxResultImage');
-    const linuxResultImage = document.getElementById('linuxResultImage');
-    const hpuxResults = document.getElementById('hpuxResults');
-    const linuxResults = document.getElementById('linuxResults');
+    if (resultsSection) {
+        // Kode khusus untuk halaman hasil/detail jika diperlukan
+    }
     
-    // Event listeners for drag and drop
-    setupDropzone(hpuxDropzone, hpuxInput, hpuxPreview, hpuxPreviewImage);
-    setupDropzone(linuxDropzone, linuxInput, linuxPreview, linuxPreviewImage);
-    
-    // Event listeners for remove buttons
-    removeHpuxButton.addEventListener('click', () => {
-        hpuxInput.value = '';
-        hpuxPreview.classList.add('hidden');
-        hpuxDropzone.classList.remove('hidden');
-        updateSubmitButtonState();
-    });
-    
-    removeLinuxButton.addEventListener('click', () => {
-        linuxInput.value = '';
-        linuxPreview.classList.add('hidden');
-        linuxDropzone.classList.remove('hidden');
-        updateSubmitButtonState();
-    });
-    
-    // Event listener for file input change
-    hpuxInput.addEventListener('change', () => handleFileInputChange(hpuxInput, hpuxPreview, hpuxPreviewImage, hpuxDropzone));
-    linuxInput.addEventListener('change', () => handleFileInputChange(linuxInput, linuxPreview, linuxPreviewImage, linuxDropzone));
-    
-    // Event listener for form submission
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (!validateForm()) {
-            return;
-        }
-        
-        setLoading(true);
-        
-        try {
-            const formData = new FormData(form);
-            
-            const response = await fetch('/api/compare', {
-                method: 'POST',
-                body: formData
+    // Event listeners for viewing existing comparisons (ada di semua halaman)
+    const viewButtons = document.querySelectorAll('.view-comparison');
+    if (viewButtons && viewButtons.length > 0) {
+        viewButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const comparisonId = button.getAttribute('data-id');
+                await loadComparisonDetails(comparisonId);
             });
-            
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                displayResults(result);
-            } else {
-                showError(result.message || 'Error processing comparison');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showError('An error occurred while processing the request.');
-        } finally {
-            setLoading(false);
-        }
-    });
-    
-    // Event listeners for viewing existing comparisons
-    document.querySelectorAll('.view-comparison').forEach(button => {
-        button.addEventListener('click', async () => {
-            const comparisonId = button.getAttribute('data-id');
-            await loadComparisonDetails(comparisonId);
         });
-    });
+    }
     
-    // Test case input change listener
-    testCaseInput.addEventListener('input', updateSubmitButtonState);
+    /**
+     * Setup handlers untuk form komparasi - hanya dijalankan jika form ada
+     */
+    function setupComparasionFormHandlers() {
+        // Elements
+        const testCaseInput = document.getElementById('testCase');
+        const hpuxDropzone = document.getElementById('hpuxDropzone');
+        const linuxDropzone = document.getElementById('linuxDropzone');
+        const hpuxInput = document.getElementById('hpuxImage');
+        const linuxInput = document.getElementById('linuxImage');
+        const hpuxPreview = document.getElementById('hpuxPreview');
+        const linuxPreview = document.getElementById('linuxPreview');
+        const hpuxPreviewImage = document.getElementById('hpuxPreviewImage');
+        const linuxPreviewImage = document.getElementById('linuxPreviewImage');
+        const removeHpuxButton = document.getElementById('removeHpuxImage');
+        const removeLinuxButton = document.getElementById('removeLinuxImage');
+        const checkButton = document.getElementById('checkButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        
+        // Event listeners for drag and drop
+        setupDropzone(hpuxDropzone, hpuxInput, hpuxPreview, hpuxPreviewImage);
+        setupDropzone(linuxDropzone, linuxInput, linuxPreview, linuxPreviewImage);
+        
+        // Event listeners for remove buttons
+        removeHpuxButton.addEventListener('click', () => {
+            hpuxInput.value = '';
+            hpuxPreview.classList.add('hidden');
+            hpuxDropzone.classList.remove('hidden');
+            updateSubmitButtonState();
+        });
+        
+        removeLinuxButton.addEventListener('click', () => {
+            linuxInput.value = '';
+            linuxPreview.classList.add('hidden');
+            linuxDropzone.classList.remove('hidden');
+            updateSubmitButtonState();
+        });
+        
+        // Event listener for file input change
+        hpuxInput.addEventListener('change', () => handleFileInputChange(hpuxInput, hpuxPreview, hpuxPreviewImage, hpuxDropzone));
+        linuxInput.addEventListener('change', () => handleFileInputChange(linuxInput, linuxPreview, linuxPreviewImage, linuxDropzone));
+        
+        // Event listener for form submission
+        comparisonForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            setLoading(true);
+            
+            try {
+                const formData = new FormData(comparisonForm);
+                
+                const response = await fetch('/api/compare', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    displayResults(result);
+                } else {
+                    showError(result.message || 'Error processing comparison');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred while processing the request.');
+            } finally {
+                setLoading(false);
+            }
+        });
+        
+        // Test case input change listener
+        testCaseInput.addEventListener('input', updateSubmitButtonState);
+        
+        /**
+         * Update submit button state based on form inputs
+         */
+        function updateSubmitButtonState() {
+            const hasTestCase = testCaseInput.value.trim() !== '';
+            const hasHpuxImage = hpuxInput.files && hpuxInput.files.length > 0;
+            const hasLinuxImage = linuxInput.files && linuxInput.files.length > 0;
+            
+            checkButton.disabled = !(hasTestCase && hasHpuxImage && hasLinuxImage);
+        }
+        
+        /**
+         * Validate form inputs
+         */
+        function validateForm() {
+            const hasTestCase = testCaseInput.value.trim() !== '';
+            const hasHpuxImage = hpuxInput.files && hpuxInput.files.length > 0;
+            const hasLinuxImage = linuxInput.files && linuxInput.files.length > 0;
+            
+            if (!hasTestCase) {
+                alert('Please enter a test case name');
+                return false;
+            }
+            
+            if (!hasHpuxImage) {
+                alert('Please select an HPUX image');
+                return false;
+            }
+            
+            if (!hasLinuxImage) {
+                alert('Please select a Linux image');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        /**
+         * Set loading state
+         */
+        function setLoading(isLoading) {
+            if (isLoading) {
+                buttonText.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                checkButton.disabled = true;
+            } else {
+                buttonText.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                updateSubmitButtonState();
+            }
+        }
+    }
+    
+    /**
+     * Display comparison results
+     */
+    function displayResults(result) {
+        // Get elements
+        const testCaseDisplay = document.getElementById('testCaseDisplay');
+        const differenceCount = document.getElementById('differenceCount');
+        const hpuxResultImage = document.getElementById('hpuxResultImage');
+        const linuxResultImage = document.getElementById('linuxResultImage');
+        const hpuxResults = document.getElementById('hpuxResults');
+        const linuxResults = document.getElementById('linuxResults');
+        const resultsSection = document.getElementById('results-section');
+        
+        // Update test case display
+        testCaseDisplay.textContent = result.comparison.testCase;
+        
+        // Update difference count badge
+        const count = result.comparisonResult.differenceCount;
+        if (count === 0) {
+            differenceCount.textContent = 'No differences found';
+            differenceCount.className = 'badge bg-green-100 text-green-800';
+        } else {
+            differenceCount.textContent = `${count} differences found`;
+            differenceCount.className = 'badge bg-red-100 text-red-800';
+        }
+        
+        // Update images
+        hpuxResultImage.src = `/${result.comparison.hpuxImagePath}`;
+        linuxResultImage.src = `/${result.comparison.linuxImagePath}`;
+        
+        // Render results
+        if (result.formattedResults.hpuxTableHTML) {
+            // Gunakan HTML tabel yang telah digenerate
+            hpuxResults.innerHTML = result.formattedResults.hpuxTableHTML;
+        } else {
+            // Fallback ke format JSON
+            renderExtractedData(hpuxResults, result.formattedResults.hpux);
+        }
+        
+        if (result.formattedResults.linuxTableHTML) {
+            // Gunakan HTML tabel yang telah digenerate
+            linuxResults.innerHTML = result.formattedResults.linuxTableHTML;
+        } else {
+            // Fallback ke format JSON
+            renderExtractedData(linuxResults, result.formattedResults.linux);
+        }
+        
+        // Show results section
+        resultsSection.classList.remove('hidden');
+        
+        // Scroll to results
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
     
     /**
      * Set up dropzone event listeners
      */
     function setupDropzone(dropzone, input, preview, previewImage) {
+        if (!dropzone || !input || !preview || !previewImage) {
+            // Skip if any element is missing
+            return;
+        }
+        
         // Prevent default behavior for drag events
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
             dropzone.addEventListener(event, preventDefaults, false);
@@ -158,94 +282,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 previewImage.src = e.target.result;
                 preview.classList.remove('hidden');
                 dropzone.classList.add('hidden');
-                updateSubmitButtonState();
+                
+                // Update button state if we're on form page
+                const testCaseInput = document.getElementById('testCase');
+                if (testCaseInput) {
+                    updateSubmitButtonState();
+                }
             };
             reader.readAsDataURL(file);
         }
-    }
-    
-    /**
-     * Update submit button state based on form inputs
-     */
-    function updateSubmitButtonState() {
-        const hasTestCase = testCaseInput.value.trim() !== '';
-        const hasHpuxImage = hpuxInput.files && hpuxInput.files.length > 0;
-        const hasLinuxImage = linuxInput.files && linuxInput.files.length > 0;
-        
-        checkButton.disabled = !(hasTestCase && hasHpuxImage && hasLinuxImage);
-    }
-    
-    /**
-     * Validate form inputs
-     */
-    function validateForm() {
-        const hasTestCase = testCaseInput.value.trim() !== '';
-        const hasHpuxImage = hpuxInput.files && hpuxInput.files.length > 0;
-        const hasLinuxImage = linuxInput.files && linuxInput.files.length > 0;
-        
-        if (!hasTestCase) {
-            alert('Please enter a test case name');
-            return false;
-        }
-        
-        if (!hasHpuxImage) {
-            alert('Please select an HPUX image');
-            return false;
-        }
-        
-        if (!hasLinuxImage) {
-            alert('Please select a Linux image');
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Set loading state
-     */
-    function setLoading(isLoading) {
-        if (isLoading) {
-            buttonText.classList.add('hidden');
-            loadingSpinner.classList.remove('hidden');
-            checkButton.disabled = true;
-        } else {
-            buttonText.classList.remove('hidden');
-            loadingSpinner.classList.add('hidden');
-            updateSubmitButtonState();
-        }
-    }
-    
-    /**
-     * Display comparison results
-     */
-    function displayResults(result) {
-        // Update test case display
-        testCaseDisplay.textContent = result.comparison.testCase;
-        
-        // Update difference count badge
-        const count = result.comparisonResult.differenceCount;
-        if (count === 0) {
-            differenceCount.textContent = 'No differences found';
-            differenceCount.className = 'badge bg-green-100 text-green-800';
-        } else {
-            differenceCount.textContent = `${count} differences found`;
-            differenceCount.className = 'badge bg-red-100 text-red-800';
-        }
-        
-        // Update images
-        hpuxResultImage.src = `/${result.comparison.hpuxImagePath}`;
-        linuxResultImage.src = `/${result.comparison.linuxImagePath}`;
-        
-        // Render results
-        renderExtractedData(hpuxResults, result.formattedResults.hpux);
-        renderExtractedData(linuxResults, result.formattedResults.linux);
-        
-        // Show results section
-        resultsSection.classList.remove('hidden');
-        
-        // Scroll to results
-        resultsSection.scrollIntoView({ behavior: 'smooth' });
     }
     
     /**
@@ -305,14 +350,23 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     async function loadComparisonDetails(id) {
         try {
-            setLoading(true);
+            const buttonText = document.getElementById('buttonText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const checkButton = document.getElementById('checkButton');
+            
+            if (buttonText && loadingSpinner && checkButton) {
+                setLoading(true);
+            }
             
             const response = await fetch(`/api/comparison/${id}`);
             const result = await response.json();
             
             if (result.status === 'success') {
                 // Update form test case to match the loaded comparison
-                testCaseInput.value = result.comparison.testCase;
+                const testCaseInput = document.getElementById('testCase');
+                if (testCaseInput) {
+                    testCaseInput.value = result.comparison.testCase;
+                }
                 
                 // Display results
                 displayResults(result);
@@ -323,7 +377,12 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             showError('An error occurred while loading the comparison.');
         } finally {
-            setLoading(false);
+            const buttonText = document.getElementById('buttonText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            if (buttonText && loadingSpinner) {
+                setLoading(false);
+            }
         }
     }
     
@@ -340,5 +399,46 @@ document.addEventListener('DOMContentLoaded', function() {
     function preventDefaults(e) {
         e.preventDefault();
         e.stopPropagation();
+    }
+    
+    /**
+     * Update submit button state based on form inputs
+     * Fungsi global untuk dipanggil dari event handler
+     */
+    function updateSubmitButtonState() {
+        const testCaseInput = document.getElementById('testCase');
+        const hpuxInput = document.getElementById('hpuxImage');
+        const linuxInput = document.getElementById('linuxImage');
+        const checkButton = document.getElementById('checkButton');
+        
+        if (testCaseInput && hpuxInput && linuxInput && checkButton) {
+            const hasTestCase = testCaseInput.value.trim() !== '';
+            const hasHpuxImage = hpuxInput.files && hpuxInput.files.length > 0;
+            const hasLinuxImage = linuxInput.files && linuxInput.files.length > 0;
+            
+            checkButton.disabled = !(hasTestCase && hasHpuxImage && hasLinuxImage);
+        }
+    }
+    
+    /**
+     * Set loading state
+     * Fungsi global untuk dipanggil dari berbagai tempat
+     */
+    function setLoading(isLoading) {
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const checkButton = document.getElementById('checkButton');
+        
+        if (buttonText && loadingSpinner && checkButton) {
+            if (isLoading) {
+                buttonText.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                checkButton.disabled = true;
+            } else {
+                buttonText.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                updateSubmitButtonState();
+            }
+        }
     }
 });

@@ -24,8 +24,21 @@
                     
                     <div>
                         <% 
-                            let differences = JSON.parse(comparison.differences);
-                            let count = Object.keys(differences).length;
+                            let differences = {};
+                            let count = 0;
+                            
+                            try {
+                                // Periksa apakah differences sudah dalam bentuk objek atau string
+                                if (typeof comparison.differences === 'object' && comparison.differences !== null) {
+                                    differences = comparison.differences;
+                                } else if (typeof comparison.differences === 'string') {
+                                    differences = JSON.parse(comparison.differences);
+                                }
+                                count = Object.keys(differences).length;
+                            } catch (e) {
+                                console.error('Error parsing differences:', e);
+                            }
+                            
                             let badgeClass = count > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
                         %>
                         <span class="px-3 py-1 text-sm rounded-full <%= badgeClass %>">
@@ -78,33 +91,66 @@
                 <div class="result-container">
                     <h4 class="text-lg font-semibold mb-3 bg-gray-100 p-2 rounded-md">Hasil HPUX</h4>
                     <div id="hpuxResults" class="p-4 border border-gray-200 rounded-md bg-gray-50 overflow-auto max-h-96">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
-                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="hpuxResultsBody">
-                                <% 
-                                    const hpuxData = JSON.parse(comparison.hpuxExtractedData);
-                                    for (const [key, value] of Object.entries(hpuxData)) {
-                                        const hasDiff = differences.hasOwnProperty(key);
-                                        const diffClass = hasDiff ? 'data-diff' : '';
-                                %>
-                                    <tr class="<%= diffClass %> <%= hasDiff ? 'bg-yellow-50' : '' %>">
-                                        <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900"><%= key %></td>
-                                        <td class="px-3 py-2 text-sm text-gray-500">
-                                            <% if (hasDiff) { %>
-                                                <span class="bg-yellow-200"><%= typeof value === 'object' ? JSON.stringify(value) : value %></span>
-                                            <% } else { %>
-                                                <%= typeof value === 'object' ? JSON.stringify(value) : value %>
-                                            <% } %>
-                                        </td>
+                    <% 
+                        try {
+                            // Parse data dari database - handle baik object maupun string
+                            let hpuxData;
+                            
+                            if (typeof comparison.hpuxExtractedData === 'object' && comparison.hpuxExtractedData !== null) {
+                                hpuxData = comparison.hpuxExtractedData;
+                            } else if (typeof comparison.hpuxExtractedData === 'string') {
+                                hpuxData = JSON.parse(comparison.hpuxExtractedData);
+                            } else {
+                                hpuxData = { data: [] };
+                            }
+                            
+                            // Cek apakah data memiliki struktur yang diharapkan
+                            if (hpuxData && hpuxData.data && Array.isArray(hpuxData.data)) {
+                                // Definisikan urutan kolom yang diinginkan
+                                const orderedColumns = [
+                                    'Offset', 'No', 'Name', 'DESC', 'Form', 'VLen', 'FType', 'Len', 'Data'
+                                ];
+                    %>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <% orderedColumns.forEach(column => { %>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r"><%= column %></th>
+                                        <% }); %>
                                     </tr>
-                                <% } %>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <% hpuxData.data.forEach((item, index) => { 
+                                        const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                                    %>
+                                        <tr class="<%= rowClass %> data-row">
+                                            <% orderedColumns.forEach(column => { 
+                                                const value = item.hasOwnProperty(column) ? item[column] : '';
+                                            %>
+                                                <td class="px-3 py-2 text-sm text-gray-500 border-r"><%= value %></td>
+                                            <% }); %>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <p>Data tidak valid atau tidak dalam format array.</p>
+                        <% if (typeof comparison.hpuxExtractedData === 'object') { %>
+                            <p>Data Type: Object</p>
+                        <% } else { %>
+                            <p>Data Type: <%= typeof comparison.hpuxExtractedData %></p>
+                        <% } %>
+                    <% }
+                        } catch(e) { %>
+                            <p class="text-red-500">Error menampilkan data HPUX: <%= e.message %></p>
+                            <p class="text-gray-700">Data type: <%= typeof comparison.hpuxExtractedData %></p>
+                            <% if (typeof comparison.hpuxExtractedData === 'string') { %>
+                                <p class="text-gray-700">First few characters: <%= comparison.hpuxExtractedData.substring(0, 50) %>...</p>
+                            <% } %>
+                        <% } 
+                    %>
                     </div>
                 </div>
                 
@@ -112,33 +158,66 @@
                 <div class="result-container">
                     <h4 class="text-lg font-semibold mb-3 bg-gray-100 p-2 rounded-md">Hasil Linux</h4>
                     <div id="linuxResults" class="p-4 border border-gray-200 rounded-md bg-gray-50 overflow-auto max-h-96">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
-                                    <th class="px-3 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="linuxResultsBody">
-                                <% 
-                                    const linuxData = JSON.parse(comparison.linuxExtractedData);
-                                    for (const [key, value] of Object.entries(linuxData)) {
-                                        const hasDiff = differences.hasOwnProperty(key);
-                                        const diffClass = hasDiff ? 'data-diff' : '';
-                                %>
-                                    <tr class="<%= diffClass %> <%= hasDiff ? 'bg-yellow-50' : '' %>">
-                                        <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900"><%= key %></td>
-                                        <td class="px-3 py-2 text-sm text-gray-500">
-                                            <% if (hasDiff) { %>
-                                                <span class="bg-yellow-200"><%= typeof value === 'object' ? JSON.stringify(value) : value %></span>
-                                            <% } else { %>
-                                                <%= typeof value === 'object' ? JSON.stringify(value) : value %>
-                                            <% } %>
-                                        </td>
+                    <% 
+                        try {
+                            // Parse data dari database - handle baik object maupun string
+                            let linuxData;
+                            
+                            if (typeof comparison.linuxExtractedData === 'object' && comparison.linuxExtractedData !== null) {
+                                linuxData = comparison.linuxExtractedData;
+                            } else if (typeof comparison.linuxExtractedData === 'string') {
+                                linuxData = JSON.parse(comparison.linuxExtractedData);
+                            } else {
+                                linuxData = { data: [] };
+                            }
+                            
+                            // Cek apakah data memiliki struktur yang diharapkan
+                            if (linuxData && linuxData.data && Array.isArray(linuxData.data)) {
+                                // Definisikan urutan kolom yang diinginkan
+                                const orderedColumns = [
+                                    'Offset', 'No', 'Name', 'DESC', 'Form', 'VLen', 'FType', 'Len', 'Data'
+                                ];
+                    %>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <% orderedColumns.forEach(column => { %>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r"><%= column %></th>
+                                        <% }); %>
                                     </tr>
-                                <% } %>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <% linuxData.data.forEach((item, index) => { 
+                                        const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                                    %>
+                                        <tr class="<%= rowClass %> data-row">
+                                            <% orderedColumns.forEach(column => { 
+                                                const value = item.hasOwnProperty(column) ? item[column] : '';
+                                            %>
+                                                <td class="px-3 py-2 text-sm text-gray-500 border-r"><%= value %></td>
+                                            <% }); %>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <p>Data tidak valid atau tidak dalam format array.</p>
+                        <% if (typeof comparison.linuxExtractedData === 'object') { %>
+                            <p>Data Type: Object</p>
+                        <% } else { %>
+                            <p>Data Type: <%= typeof comparison.linuxExtractedData %></p>
+                        <% } %>
+                    <% }
+                        } catch(e) { %>
+                            <p class="text-red-500">Error menampilkan data Linux: <%= e.message %></p>
+                            <p class="text-gray-700">Data type: <%= typeof comparison.linuxExtractedData %></p>
+                            <% if (typeof comparison.linuxExtractedData === 'string') { %>
+                                <p class="text-gray-700">First few characters: <%= comparison.linuxExtractedData.substring(0, 50) %>...</p>
+                            <% } %>
+                        <% } 
+                    %>
                     </div>
                 </div>
             </div>
@@ -152,52 +231,52 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Toggle differences filter
         const toggleButton = document.getElementById('toggleDifferences');
-        let showOnlyDifferences = false;
-        
-        toggleButton.addEventListener('click', function() {
-            showOnlyDifferences = !showOnlyDifferences;
+        if (toggleButton) {
+            let showOnlyDifferences = false;
             
-            // Update button text
-            if (showOnlyDifferences) {
-                this.innerHTML = '<i class="fas fa-filter mr-1"></i> Tampilkan Semua Data';
-            } else {
-                this.innerHTML = '<i class="fas fa-filter mr-1"></i> Tampilkan Hanya Perbedaan';
-            }
-            
-            // Filter rows
-            const rows = document.querySelectorAll('#hpuxResultsBody tr, #linuxResultsBody tr');
-            rows.forEach(row => {
+            toggleButton.addEventListener('click', function() {
+                showOnlyDifferences = !showOnlyDifferences;
+                
+                // Update button text
                 if (showOnlyDifferences) {
-                    row.style.display = row.classList.contains('data-diff') ? '' : 'none';
+                    this.innerHTML = '<i class="fas fa-filter mr-1"></i> Tampilkan Semua Data';
                 } else {
-                    row.style.display = '';
+                    this.innerHTML = '<i class="fas fa-filter mr-1"></i> Tampilkan Hanya Perbedaan';
                 }
+                
+                // Toggle display of rows with differences
+                // Fitur ini akan diimplementasikan di masa mendatang
+                alert('Fitur filter perbedaan akan diimplementasikan pada versi berikutnya.');
             });
-        });
+        }
         
         // Download JSON data
-        document.getElementById('downloadJson').addEventListener('click', function() {
-            const comparisonData = {
-                id: '<%= comparison.id %>',
-                testCase: '<%= comparison.testCase %>',
-                createdAt: '<%= comparison.createdAt %>',
-                hpuxImagePath: '<%= comparison.hpuxImagePath %>',
-                linuxImagePath: '<%= comparison.linuxImagePath %>',
-                hpuxExtractedData: <%= comparison.hpuxExtractedData %>,
-                linuxExtractedData: <%= comparison.linuxExtractedData %>,
-                differences: <%= comparison.differences %>
-            };
-            
-            // Create a JSON file and trigger download
-            const blob = new Blob([JSON.stringify(comparisonData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `comparison-<%= comparison.id %>.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
+        const downloadButton = document.getElementById('downloadJson');
+        if (downloadButton) {
+            downloadButton.addEventListener('click', function() {
+                fetch('/api/comparison/<%= comparison.id %>')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Create JSON file and trigger download
+                            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `comparison-<%= comparison.id %>.json`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        } else {
+                            alert('Gagal mengunduh data: ' + (data.message || 'Error tidak diketahui'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error downloading comparison:', error);
+                        alert('Gagal mengunduh data JSON');
+                    });
+            });
+        }
     });
 </script>

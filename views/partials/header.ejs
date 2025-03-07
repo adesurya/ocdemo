@@ -17,20 +17,61 @@
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <h1 class="text-2xl font-bold mb-3 md:mb-0">OCR & Image Comparison Tool</h1>
                 <nav class="w-full md:w-auto">
-                    <ul class="flex flex-row space-x-6">
-                        <li>
-                            <a href="/" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'komparasi' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
-                                <i class="fas fa-exchange-alt mr-1"></i> Komparasi File
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/history" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'history' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
-                                <i class="fas fa-history mr-1"></i> Riwayat
-                            </a>
-                        </li>
+                    <ul class="flex flex-row space-x-6 items-center">
+                        <% if (locals.user) { %>
+                            <li>
+                                <a href="/" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'komparasi' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
+                                    <i class="fas fa-exchange-alt mr-1"></i> Komparasi File
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/history" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'history' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
+                                    <i class="fas fa-history mr-1"></i> Riwayat
+                                </a>
+                            </li>
+                            <% if (user.role === 'admin') { %>
+                                <li>
+                                    <a href="/users" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'users' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
+                                        <i class="fas fa-users mr-1"></i> Users
+                                    </a>
+                                </li>
+                            <% } %>
+                            <li class="relative ml-4 group">
+                                <button class="flex items-center text-white hover:text-blue-200 focus:outline-none">
+                                    <span class="mr-1"><%= user.name %></span>
+                                    <i class="fas fa-chevron-down text-xs"></i>
+                                </button>
+                                <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
+                                    <div class="px-4 py-2 text-sm text-gray-700 border-b">
+                                        Logged in as <span class="font-medium"><%= user.username %></span>
+                                        <div class="text-xs text-gray-500"><%= user.role === 'admin' ? 'Administrator' : 'User' %></div>
+                                    </div>
+                                    <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                                    </a>
+                                </div>
+                            </li>
+                        <% } else { %>
+                            <li>
+                                <a href="/login" class="text-white hover:text-blue-200 transition-colors">
+                                    <i class="fas fa-sign-in-alt mr-1"></i> Login
+                                </a>
+                            </li>
+                        <% } %>
                     </ul>
                 </nav>
             </div>
         </div>
     </header>
     <main class="container mx-auto px-4 py-6">
+        <% if (locals.success) { %>
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+                <p><%= success %></p>
+            </div>
+        <% } %>
+        
+        <% if (locals.error) { %>
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                <p><%= error %></p>
+            </div>
+        <% } %>

@@ -61,7 +61,7 @@
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <button 
-                                            class="text-blue-600 hover:text-blue-800 download-json" 
+                                            class="text-blue-600 hover:text-blue-800 download-json-btn" 
                                             data-id="<%= comparison.id %>"
                                             title="Unduh JSON"
                                         >
@@ -136,50 +136,68 @@
         });
         
         // Download JSON for a comparison
-        document.querySelectorAll('.download-json').forEach(button => {
-            button.addEventListener('click', async () => {
-                const comparisonId = button.getAttribute('data-id');
-                try {
-                    const response = await fetch(`/api/comparison/${comparisonId}`);
-                    const data = await response.json();
-                    
-                    // Create a JSON file and trigger download
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `comparison-${comparisonId}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                } catch (error) {
-                    console.error('Error downloading comparison:', error);
-                    alert('Failed to download comparison data.');
-                }
+        document.querySelectorAll('.download-json-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const comparisonId = this.getAttribute('data-id');
+                downloadComparison(comparisonId);
             });
         });
         
         // Export all data
-        exportAllButton.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/api/comparisons');
-                const data = await response.json();
-                
-                // Create a JSON file and trigger download
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `all-comparisons-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (error) {
-                console.error('Error exporting all comparisons:', error);
-                alert('Failed to export all comparison data.');
-            }
+        exportAllButton.addEventListener('click', function() {
+            downloadAllComparisons();
         });
+        
+        // Function to download a single comparison
+        function downloadComparison(comparisonId) {
+            fetch(`/api/comparison/${comparisonId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Create a JSON file and trigger download
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `comparison-${comparisonId}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    } else {
+                        alert('Failed to download comparison data.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error downloading comparison:', error);
+                    alert('Failed to download comparison data.');
+                });
+        }
+        
+        // Function to download all comparisons
+        function downloadAllComparisons() {
+            fetch('/api/comparisons')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Create a JSON file and trigger download
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `all-comparisons-${new Date().toISOString().split('T')[0]}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    } else {
+                        alert('Failed to export all comparison data.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error exporting all comparisons:', error);
+                    alert('Failed to export all comparison data.');
+                });
+        }
     });
 </script>

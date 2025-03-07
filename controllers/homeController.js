@@ -76,6 +76,9 @@ const detail = async (req, res) => {
       });
     }
     
+    // Tidak perlu melakukan parse di sini, karena view akan melakukan parsing
+    // yang aman dengan penanganan error
+    
     res.render('detail', {
       title: `Detail Komparasi - ${comparison.testCase}`,
       comparison,
@@ -85,7 +88,7 @@ const detail = async (req, res) => {
     console.error('Error loading detail page:', error);
     res.status(500).render('error', {
       title: 'Error',
-      message: 'Failed to load comparison details',
+      message: 'Failed to load comparison details: ' + error.message,
       activeMenu: 'history'
     });
   }

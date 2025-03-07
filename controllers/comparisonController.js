@@ -22,47 +22,64 @@ const processComparison = async (req, res) => {
     const hpuxImagePath = path.join('uploads/hpux', path.basename(req.files.hpuxImage[0].path));
     const linuxImagePath = path.join('uploads/linux', path.basename(req.files.linuxImage[0].path));
     
+    console.log('Processing comparison:', { testCase, hpuxImagePath, linuxImagePath });
+    
     // Extract text from both images
     const hpuxResult = await extractTextFromImage(req.files.hpuxImage[0].path);
     const linuxResult = await extractTextFromImage(req.files.linuxImage[0].path);
     
-    if (hpuxResult.status === 'error' || linuxResult.status === 'error') {
-      return res.status(500).json({
-        status: 'error',
-        message: 'Failed to extract text from one or both images',
-        details: {
-          hpux: hpuxResult.status === 'error' ? hpuxResult.message : null,
-          linux: linuxResult.status === 'error' ? linuxResult.message : null
-        }
-      });
+    // Log result status
+    console.log('Extraction results:', {
+      hpuxStatus: hpuxResult.status,
+      linuxStatus: linuxResult.status,
+      hpuxDataLength: hpuxResult.extractedData?.data?.length || 0,
+      linuxDataLength: linuxResult.extractedData?.data?.length || 0
+    });
+    
+    // Get extracted data
+    const hpuxData = hpuxResult.extractedData || { data: [] };
+    const linuxData = linuxResult.extractedData || { data: [] };
+    
+    // Collect any warnings
+    let warnings = [];
+    if (hpuxResult.status === 'error') {
+      warnings.push(`HPUX image: ${hpuxResult.message}`);
+    }
+    if (linuxResult.status === 'error') {
+      warnings.push(`Linux image: ${linuxResult.message}`);
     }
     
     // Compare the extracted data
-    const comparisonResult = compareExtractedData(
-      hpuxResult.extractedData,
-      linuxResult.extractedData
-    );
+    console.log('Comparing extracted data');
+    const comparisonResult = compareExtractedData(hpuxData, linuxData);
     
     // Format the results for display
-    const formattedResults = formatComparisonResults(
-      hpuxResult.extractedData,
-      linuxResult.extractedData,
-      comparisonResult.differences
-    );
+    console.log('Formatting comparison results');
+    const formattedResults = formatComparisonResults(hpuxData, linuxData, comparisonResult.differences);
+    
+    // Serialize for database storage - we know this is valid JSON
+    const hpuxJSON = JSON.stringify(hpuxData);
+    const linuxJSON = JSON.stringify(linuxData);
+    const differencesJSON = JSON.stringify(comparisonResult.differences);
+    
+    console.log('Saving comparison to database');
     
     // Save the comparison to the database
     const comparison = await Comparison.create({
       testCase,
       hpuxImagePath,
       linuxImagePath,
-      hpuxExtractedData: JSON.stringify(hpuxResult.extractedData),
-      linuxExtractedData: JSON.stringify(linuxResult.extractedData),
-      differences: JSON.stringify(comparisonResult.differences)
+      hpuxExtractedData: hpuxJSON,
+      linuxExtractedData: linuxJSON,
+      differences: differencesJSON
     });
+    
+    console.log(`Comparison saved with ID: ${comparison.id}`);
     
     // Return the results
     res.status(200).json({
-      status: 'success',
+      status: warnings.length > 0 ? 'partial' : 'success',
+      warnings: warnings.length > 0 ? warnings : undefined,
       comparison: {
         id: comparison.id,
         testCase,
@@ -71,8 +88,8 @@ const processComparison = async (req, res) => {
         createdAt: comparison.createdAt
       },
       results: {
-        hpux: hpuxResult.extractedData,
-        linux: linuxResult.extractedData
+        hpux: hpuxData,
+        linux: linuxData
       },
       comparisonResult,
       formattedResults
@@ -106,10 +123,29 @@ const getComparison = async (req, res) => {
       });
     }
     
-    // Parse the stored JSON data
-    const hpuxData = JSON.parse(comparison.hpuxExtractedData);
-    const linuxData = JSON.parse(comparison.linuxExtractedData);
-    const differences = JSON.parse(comparison.differences);
+    // Parse the stored JSON data safely
+    let hpuxData, linuxData, differences;
+    
+    try {
+      hpuxData = JSON.parse(comparison.hpuxExtractedData);
+    } catch (e) {
+      console.error('Error parsing HPUX data:', e);
+      hpuxData = { data: [] };
+    }
+    
+    try {
+      linuxData = JSON.parse(comparison.linuxExtractedData);
+    } catch (e) {
+      console.error('Error parsing Linux data:', e);
+      linuxData = { data: [] };
+    }
+    
+    try {
+      differences = JSON.parse(comparison.differences);
+    } catch (e) {
+      console.error('Error parsing differences:', e);
+      differences = {};
+    }
     
     // Format for display
     const formattedResults = formatComparisonResults(
@@ -159,17 +195,30 @@ const listComparisons = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
     
-    res.status(200).json({
-      status: 'success',
-      count: comparisons.length,
-      comparisons: comparisons.map(comp => ({
+    // Safely parse differences for each comparison
+    const safeComparisons = comparisons.map(comp => {
+      let differenceCount = 0;
+      try {
+        const differences = JSON.parse(comp.differences);
+        differenceCount = Object.keys(differences).length;
+      } catch (e) {
+        console.error(`Error parsing differences for comparison #${comp.id}:`, e);
+      }
+      
+      return {
         id: comp.id,
         testCase: comp.testCase,
         hpuxImagePath: comp.hpuxImagePath,
         linuxImagePath: comp.linuxImagePath,
         createdAt: comp.createdAt,
-        differenceCount: JSON.parse(comp.differences) ? Object.keys(JSON.parse(comp.differences)).length : 0
-      }))
+        differenceCount
+      };
+    });
+    
+    res.status(200).json({
+      status: 'success',
+      count: safeComparisons.length,
+      comparisons: safeComparisons
     });
   } catch (error) {
     console.error('Error listing comparisons:', error);
