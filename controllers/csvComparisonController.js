@@ -251,11 +251,63 @@ const listComparisons = async (req, res) => {
   }
 };
 
+/**
+ * Menghapus komparasi CSV/TXT berdasarkan ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteComparison = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Cari komparasi di database
+    const comparison = await CSVComparison.findByPk(id);
+    
+    if (!comparison) {
+      req.flash('error', 'Komparasi tidak ditemukan');
+      return res.redirect('/history');
+    }
+    
+    // Cek permission - admin atau pemilik dapat menghapus
+    if (req.user.role !== 'admin' && comparison.userId !== req.user.id) {
+      req.flash('error', 'Anda tidak memiliki izin untuk menghapus komparasi ini');
+      return res.redirect('/history');
+    }
+    
+    // Hapus file jika ada
+    if (comparison.hpuxFilePath) {
+      const hpuxFullPath = path.join(__dirname, '..', comparison.hpuxFilePath);
+      if (fs.existsSync(hpuxFullPath)) {
+        fs.unlinkSync(hpuxFullPath);
+      }
+    }
+    
+    if (comparison.linuxFilePath) {
+      const linuxFullPath = path.join(__dirname, '..', comparison.linuxFilePath);
+      if (fs.existsSync(linuxFullPath)) {
+        fs.unlinkSync(linuxFullPath);
+      }
+    }
+    
+    // Hapus dari database
+    await comparison.destroy();
+    
+    req.flash('success', 'Komparasi berhasil dihapus');
+    res.redirect('/history');
+    
+  } catch (error) {
+    console.error('Error deleting CSV comparison:', error);
+    req.flash('error', 'Gagal menghapus komparasi');
+    res.redirect('/history');
+  }
+};
+
 module.exports = {
   showComparisonForm,
   processComparison,
   showComparisonResults,
   showComparisonResultsById,
   downloadComparisonJSON,
-  listComparisons
+  listComparisons,
+  deleteComparison
 };

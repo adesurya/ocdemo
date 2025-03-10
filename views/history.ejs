@@ -22,7 +22,7 @@
                     </div>
                     <div class="flex items-center">
                         <input type="checkbox" id="filterCsvComparison" class="mr-1 test-filter" checked data-type="csvcomparison">
-                        <label for="filterCsvComparison" class="text-sm text-gray-600">CSV Comparisons</label>
+                        <label for="filterCsvComparison" class="text-sm text-gray-600">CSV/TXT Comparisons</label>
                     </div>
                 </div>
                 
@@ -106,7 +106,7 @@
                                         </span>
                                     <% } else if (test.type === 'csvcomparison') { %>
                                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
-                                            <span class="hidden sm:inline">CSV Compare</span>
+                                            <span class="hidden sm:inline">CSV/TXT</span>
                                             <span class="sm:hidden">C</span>
                                         </span>
                                     <% } %>
@@ -188,8 +188,13 @@
                                                 <%= test.data.differenceCount %> perbedaan
                                             </span>
                                             <div class="text-xs text-gray-500 mt-1">
-                                                <i class="fas fa-file-csv mr-1"></i> HPUX: <%= test.data.hpuxFileName %><br>
-                                                <i class="fas fa-file-csv mr-1"></i> Linux: <%= test.data.linuxFileName %>
+                                                <% 
+                                                    // Get file extensions for appropriate icons
+                                                    const hpuxExt = test.data.hpuxFileName.split('.').pop().toLowerCase();
+                                                    const linuxExt = test.data.linuxFileName.split('.').pop().toLowerCase();
+                                                %>
+                                                <i class="fas fa-file-<%= hpuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> HPUX: <%= test.data.hpuxFileName %><br>
+                                                <i class="fas fa-file-<%= linuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> Linux: <%= test.data.linuxFileName %>
                                             </div>
                                         </div>
                                     <% } %>
@@ -211,6 +216,11 @@
                                             >
                                                 <i class="fas fa-download"></i>
                                             </button>
+                                            <form action="/api/comparison/<%= test.data.id %>?_method=DELETE" method="POST" class="inline-block delete-comparison-form">
+                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete Comparison">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         <% } else if (test.type === 'testcase') { %>
                                             <a 
                                                 href="/test-cases/<%= test.data.id %>" 
@@ -263,6 +273,11 @@
                                             >
                                                 <i class="fas fa-download"></i>
                                             </a>
+                                            <form action="/csv-comparison/<%= test.data.id %>?_method=DELETE" method="POST" class="inline-block delete-csv-form">
+                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete CSV/TXT Comparison">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
                                         <% } %>
                                     </div>
                                 </td>
@@ -390,6 +405,24 @@
         document.querySelectorAll('.delete-form').forEach(form => {
             form.addEventListener('submit', function(e) {
                 if (!confirm('Apakah Anda yakin ingin menghapus test case ini? Tindakan ini tidak dapat dibatalkan.')) {
+                    e.preventDefault();
+                }
+            });
+        });
+        
+        // Confirm delete for image comparisons
+        document.querySelectorAll('.delete-comparison-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('Apakah Anda yakin ingin menghapus komparasi image ini? Tindakan ini tidak dapat dibatalkan.')) {
+                    e.preventDefault();
+                }
+            });
+        });
+        
+        // Confirm delete for CSV/TXT comparisons
+        document.querySelectorAll('.delete-csv-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('Apakah Anda yakin ingin menghapus komparasi CSV/TXT ini? Tindakan ini tidak dapat dibatalkan.')) {
                     e.preventDefault();
                 }
             });

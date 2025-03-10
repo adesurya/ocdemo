@@ -27,6 +27,8 @@ const PORT = process.env.PORT || 3000;
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
 const csvComparisonDir = path.join(uploadsDir, 'csv-comparison');
+const scenarioRoutes = require('./routes/scenario');
+
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
@@ -47,6 +49,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 app.use(cookieParser());
+app.use('/scenarios', isAuthenticated, scenarioRoutes);
+
 
 // Session setup for flash messages
 app.use(session({
@@ -59,6 +63,7 @@ app.use(flash());
 
 // Make flash messages available to all views, but only if they exist
 app.use((req, res, next) => {
+
   // Flash messages dari session
   const successFlash = req.flash('success');
   const errorFlash = req.flash('error');
@@ -73,8 +78,15 @@ app.use((req, res, next) => {
   }
   
   // Add view helpers to res.locals
-  res.locals.formatFileSize = viewHelpers.formatFileSize;
-  res.locals.formatDate = viewHelpers.formatDate;
+  res.locals.formatFileSize = function(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };  res.locals.formatDate = viewHelpers.formatDate;
   
   next();
 });

@@ -63,5 +63,6 @@ router.get('/results', csvComparisonController.showComparisonResults);
 router.get('/results/:id', csvComparisonController.showComparisonResultsById);
 router.get('/download/:id', csvComparisonController.downloadComparisonJSON);
 router.get('/list', csvComparisonController.listComparisons);
+router.delete('/:id', csvComparisonController.deleteComparison); // Tambahkan rute DELETE
 
 module.exports = router;

@@ -61,7 +61,7 @@
     <header class="bg-blue-600 text-white shadow-md">
         <div class="container mx-auto px-4 py-4">
             <div class="flex flex-col md:flex-row justify-between items-center">
-                <h1 class="text-2xl font-bold mb-3 md:mb-0">OCR & Image Comparison Tool</h1>
+                <h1 class="text-2xl font-bold mb-3 md:mb-0">MAAS Upgrade Test Case System</h1>
                 
                 <!-- Mobile Menu Toggle -->
                 <button id="mobileMenuToggle" class="mobile-menu-toggle text-white focus:outline-none">
@@ -73,22 +73,27 @@
                         <% if (locals.user) { %>
                             <li>
                                 <a href="/" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'komparasi' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
-                                    <i class="fas fa-exchange-alt mr-1"></i> Komparasi File
+                                    <i class="fas fa-exchange-alt mr-1"></i> Komparasi OCR 
                                 </a>
                             </li>
                             <li>
                                 <a href="/csv-comparison" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'csv-comparison' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
-                                    <i class="fas fa-table mr-1"></i> Komparasi CSV
+                                    <i class="fas fa-table mr-1"></i> Komparasi File
                                 </a>
                             </li>
                             <li>
                                 <a href="/test-cases" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'testcase' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
-                                    <i class="fas fa-folder-open mr-1"></i> Test Cases
+                                    <i class="fa fa-file-text"></i> Test Case
                                 </a>
                             </li>
                             <li>
                                 <a href="/history" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'history' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
                                     <i class="fas fa-history mr-1"></i> Riwayat
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/scenarios" class="text-white hover:text-blue-200 transition-colors <%= activeMenu === 'scenarios' ? 'font-bold border-b-2 border-white pb-1' : '' %>">
+                                    <i class="fas fa-folder-open mr-1"></i> Scenario Test
                                 </a>
                             </li>
                             <% if (user.role === 'admin') { %>

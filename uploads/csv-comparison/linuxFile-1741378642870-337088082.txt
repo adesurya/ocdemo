@@ -1,7 +1,7 @@
-﻿Offset  No   Name                        DESC                                                 Form   VLen    FTyp  Len Data
-   0    -1   hdr_header_length           [H1. Header Length                                 ]   F      .      I      1   [16]
+Offset  No   Name                        DESC                                                 Form   VLen    FTyp  Len Data
+   0    -1   hdr_header_length           [H1. Header Length                                 ]   F      .      I      1   [18]
    1    -2   hdr_header_format           [H2. Header Format                                 ]   F      .      I      1   [01]
-   2    -3   hdr_text_format             [H3. Text Format                                   ]   F      .      I      1   [02]
+   2    -3   hdr_text_format             [H3. Text Format                                   ]   F      .      I      1   [06]
    3    -4   hdr_total_message_le        [H4. Total Message Length                          ]   F      .      I      2   [0156]
    5    -5   hdr_destination_stat        [H5. Destination Station ID                        ]   F      .      I      3   [000000]
    8    -6   hdr_source_station_i        [H6. Source Station ID                             ]   F      .      I      3   [134525]

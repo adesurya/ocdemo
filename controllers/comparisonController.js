@@ -2,6 +2,7 @@ const { Comparison } = require('../models/Comparison');
 const { extractTextFromImage } = require('../services/openaiService');
 const { compareExtractedData, formatComparisonResults } = require('../utils/compareResults');
 const path = require('path');
+const fs = require('fs');
 
 /**
  * Process comparison request and extract text from images
@@ -230,8 +231,55 @@ const listComparisons = async (req, res) => {
   }
 };
 
+/**
+ * Delete a comparison by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteComparison = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the comparison in the database
+    const comparison = await Comparison.findByPk(id);
+    
+    if (!comparison) {
+      req.flash('error', 'Komparasi tidak ditemukan');
+      return res.redirect('/history');
+    }
+    
+    // Hapus file gambar jika ada
+    if (comparison.hpuxImagePath) {
+      const hpuxFullPath = path.join(__dirname, '../public', comparison.hpuxImagePath);
+      if (fs.existsSync(hpuxFullPath)) {
+        fs.unlinkSync(hpuxFullPath);
+      }
+    }
+    
+    if (comparison.linuxImagePath) {
+      const linuxFullPath = path.join(__dirname, '../public', comparison.linuxImagePath);
+      if (fs.existsSync(linuxFullPath)) {
+        fs.unlinkSync(linuxFullPath);
+      }
+    }
+    
+    // Delete from database
+    await comparison.destroy();
+    
+    req.flash('success', 'Komparasi berhasil dihapus');
+    // Redirect to history page
+    return res.redirect('/history');
+    
+  } catch (error) {
+    console.error('Error deleting comparison:', error);
+    req.flash('error', 'Gagal menghapus komparasi');
+    return res.redirect('/history');
+  }
+};
+
 module.exports = {
   processComparison,
   getComparison,
-  listComparisons
+  listComparisons,
+  deleteComparison
 };

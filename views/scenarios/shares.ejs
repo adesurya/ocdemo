@@ -1,0 +1,226 @@
+<%- include('../partials/header') %>
+
+<div class="max-w-4xl mx-auto">
+  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <% if (locals.error) { %>
+        <div class="mb-4 p-3 bg-red-100 text-red-800 rounded-md">
+          <i class="fas fa-exclamation-circle mr-1"></i> <%= error %>
+        </div>
+      <% } %>
+      
+      <% if (locals.success) { %>
+        <div class="mb-4 p-3 bg-green-100 text-green-800 rounded-md">
+          <i class="fas fa-check-circle mr-1"></i> <%= success %>
+        </div>
+      <% } %>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">Manage Shares</h2>
+      <a href="/scenarios<%= item.parentId ? `?folder=${item.parentId}` : '' %>" class="text-blue-600 hover:text-blue-800">
+        <i class="fas fa-arrow-left mr-1"></i> Back to Folders
+      </a>
+    </div>
+    
+    <!-- Item info -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-md border border-gray-200">
+      <div class="flex items-start">
+        <div class="text-4xl mr-4">
+          <% if (item.isFolder) { %>
+            <i class="fas fa-folder text-yellow-400"></i>
+          <% } else { %>
+            <% 
+              // Determine file icon based on MIME type
+              let iconClass = 'fa-file'; 
+              const mimeType = item.fileType || '';
+              
+              if (mimeType.includes('image')) {
+                iconClass = 'fa-file-image';
+              } else if (mimeType.includes('pdf')) {
+                iconClass = 'fa-file-pdf';
+              } else if (mimeType.includes('word') || mimeType.includes('document')) {
+                iconClass = 'fa-file-word';
+              } else if (mimeType.includes('excel') || mimeType.includes('sheet') || mimeType.includes('csv')) {
+                iconClass = 'fa-file-excel';
+              } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {
+                iconClass = 'fa-file-powerpoint';
+              } else if (mimeType.includes('zip') || mimeType.includes('compressed')) {
+                iconClass = 'fa-file-archive';
+              } else if (mimeType.includes('text')) {
+                iconClass = 'fa-file-alt';
+              } else if (mimeType.includes('audio')) {
+                iconClass = 'fa-file-audio';
+              } else if (mimeType.includes('video')) {
+                iconClass = 'fa-file-video';
+              } else if (mimeType.includes('code') || mimeType.includes('javascript') || mimeType.includes('html') || mimeType.includes('css')) {
+                iconClass = 'fa-file-code';
+              }
+            %>
+            <i class="fas <%= iconClass %> text-gray-400"></i>
+          <% } %>
+        </div>
+        <div class="flex-grow">
+          <h3 class="text-xl font-semibold text-gray-800"><%= item.name %></h3>
+          <% if (item.description) { %>
+            <p class="text-gray-600 mt-1"><%= item.description %></p>
+          <% } %>
+          <div class="mt-2 flex items-center text-sm text-gray-500">
+            <span>Owner: <strong><%= item.owner ? item.owner.name : 'Unknown' %></strong></span>
+            <span class="mx-2">•</span>
+            <span>Type: <strong><%= item.isFolder ? 'Folder' : 'File' %></strong></span>
+            <% if (!item.isFolder && item.fileSize) { %>
+              <span class="mx-2">•</span>
+              <span>Size: <strong><%= formatFileSize ? formatFileSize(item.fileSize) : item.fileSize + ' bytes' %></strong></span>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Current shares -->
+    <div class="mb-8">
+      <h3 class="text-lg font-semibold mb-3 text-gray-800">Current Shares</h3>
+      
+      <% if (shares && shares.length > 0) { %>
+        <div class="overflow-x-auto border rounded-md">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Since</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% shares.forEach(share => { %>
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-gray-100 rounded-full">
+                        <i class="fas fa-user text-gray-500"></i>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900"><%= share.User.name %></div>
+                        <div class="text-sm text-gray-500"><%= share.User.email %></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <% if (share.permissionLevel === 'read') { %>
+                      <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Read</span>
+                    <% } else if (share.permissionLevel === 'edit') { %>
+                      <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Edit</span>
+                    <% } else if (share.permissionLevel === 'admin') { %>
+                      <span class="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">Admin</span>
+                    <% } %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <%= new Date(share.createdAt).toLocaleString() %>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <form action="/scenarios/<%= item.id %>/shares/<%= share.id %>?_method=DELETE" method="POST" class="inline-block delete-share-form">
+                      <button type="submit" class="text-red-600 hover:text-red-900">
+                        <i class="fas fa-trash mr-1"></i> Remove
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="text-center py-6 bg-gray-50 rounded-md border border-gray-200">
+          <p class="text-gray-600">
+            <i class="fas fa-info-circle mr-1"></i>
+            This item has not been shared with any users yet.
+          </p>
+        </div>
+      <% } %>
+    </div>
+    
+    <!-- Add new share -->
+    <div class="mt-8 border-t pt-6">
+      <h3 class="text-lg font-semibold mb-4 text-gray-800">Share with User</h3>
+      
+      <% if (availableUsers && availableUsers.length > 0) { %>
+        <form action="/scenarios/<%= item.id %>/shares" method="POST" class="max-w-lg">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="userId" class="block text-sm font-medium text-gray-700 mb-1">Select User <span class="text-red-500">*</span></label>
+              <select 
+                id="userId" 
+                name="userId" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select user...</option>
+                <% availableUsers.forEach(user => { %>
+                  <option value="<%= user.id %>"><%= user.name %> (<%= user.username %>)</option>
+                <% }); %>
+              </select>
+            </div>
+            
+            <div>
+              <label for="permissionLevel" class="block text-sm font-medium text-gray-700 mb-1">Permission Level <span class="text-red-500">*</span></label>
+              <select 
+                id="permissionLevel" 
+                name="permissionLevel" 
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="read">Read (view only)</option>
+                <option value="edit">Edit (view & modify)</option>
+                <option value="admin">Admin (full control)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <button 
+              type="submit" 
+              class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <i class="fas fa-share-alt mr-1"></i> Share
+            </button>
+          </div>
+        </form>
+      <% } else { %>
+        <div class="text-center py-6 bg-gray-50 rounded-md border border-gray-200">
+          <p class="text-gray-600">
+            <i class="fas fa-info-circle mr-1"></i>
+            There are no more users available to share with.
+          </p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Confirm delete share
+    const deleteShareForms = document.querySelectorAll('.delete-share-form');
+    deleteShareForms.forEach(form => {
+      form.addEventListener('submit', function(e) {
+        if (!confirm('Are you sure you want to remove this user\'s access? They will no longer be able to access this item.')) {
+          e.preventDefault();
+        }
+      });
+    });
+    
+    // Format file size function if not provided by server
+    if (typeof formatFileSize !== 'function') {
+      window.formatFileSize = function(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      };
+    }
+  });
+</script>
+
+<%- include('../partials/footer') %>

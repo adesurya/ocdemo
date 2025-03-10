@@ -12,4 +12,8 @@ router.get('/comparison/:id', comparisonController.getComparison);
 // List all comparisons
 router.get('/comparisons', comparisonController.listComparisons);
 
+// Delete comparison
+router.delete('/comparison/:id', comparisonController.deleteComparison);
+
+
 module.exports = router;
