@@ -1,6 +1,7 @@
 const { Comparison } = require('../models/Comparison');
 const { TestCase } = require('../models/TestCase');
 const { CSVComparison } = require('../models/CSVComparison');
+const { NonISOComparison } = require('../models/NonISOComparison');
 const { User } = require('../models/User');
 const viewHelpers = require('../utils/viewHelpers');
 const { canEditTestCase } = require('../controllers/testCaseController');
@@ -40,53 +41,133 @@ const index = async (req, res) => {
  */
 const history = async (req, res) => {
   try {
+    console.log('History function started');
     let comparisons;
     let testCases;
     let csvComparisons;
+    let nonIsoComparisons;
     
     // Get data based on user role
     if (req.user.role === 'admin') {
       // Admin can see all data
+      console.log('Fetching all comparisons for admin user');
       comparisons = await Comparison.findAll({
         order: [['createdAt', 'DESC']]
       });
       
+      console.log('Fetching all test cases for admin user');
       testCases = await TestCase.findAll({
-        include: [
-          { model: User, as: 'creator', attributes: ['id', 'name', 'username'], required: false }
-        ],
         order: [['createdAt', 'DESC']]
       });
       
+      // Manually fetch test case creators
+      for (const testCase of testCases) {
+        if (testCase.userId) {
+          const user = await User.findByPk(testCase.userId, {
+            attributes: ['id', 'name', 'username']
+          });
+          testCase.creator = user;
+        } else {
+          testCase.creator = null;
+        }
+      }
+      
+      console.log('Fetching all CSV comparisons for admin user');
       csvComparisons = await CSVComparison.findAll({
-        include: [
-          { model: User, as: 'creator', attributes: ['id', 'name', 'username'], required: false }
-        ],
         order: [['createdAt', 'DESC']]
       });
+      
+      // Manually fetch CSV comparison creators
+      for (const comparison of csvComparisons) {
+        if (comparison.userId) {
+          const user = await User.findByPk(comparison.userId, {
+            attributes: ['id', 'name', 'username']
+          });
+          comparison.creator = user;
+        } else {
+          comparison.creator = null;
+        }
+      }
+      
+      console.log('Fetching all non-ISO comparisons for admin user');
+      nonIsoComparisons = await NonISOComparison.findAll({
+        order: [['createdAt', 'DESC']]
+      });
+      
+      // Manually fetch non-ISO comparison creators
+      for (const comparison of nonIsoComparisons) {
+        if (comparison.userId) {
+          const user = await User.findByPk(comparison.userId, {
+            attributes: ['id', 'name', 'username']
+          });
+          comparison.creator = user;
+        } else {
+          comparison.creator = null;
+        }
+      }
     } else {
-      // Regular users only see their own test cases and CSV comparisons
+      // Regular users only see their own test cases and comparisons
+      console.log('Fetching comparisons visible to regular user');
       comparisons = await Comparison.findAll({
         order: [['createdAt', 'DESC']]
       });
       
+      console.log('Fetching user test cases');
       testCases = await TestCase.findAll({
         where: { userId: req.user.id },
-        include: [
-          { model: User, as: 'creator', attributes: ['id', 'name', 'username'], required: false }
-        ],
         order: [['createdAt', 'DESC']]
       });
       
+      // Manually fetch test case creators
+      for (const testCase of testCases) {
+        if (testCase.userId) {
+          const user = await User.findByPk(testCase.userId, {
+            attributes: ['id', 'name', 'username']
+          });
+          testCase.creator = user;
+        } else {
+          testCase.creator = null;
+        }
+      }
+      
+      console.log('Fetching user CSV comparisons');
       csvComparisons = await CSVComparison.findAll({
         where: { userId: req.user.id },
-        include: [
-          { model: User, as: 'creator', attributes: ['id', 'name', 'username'], required: false }
-        ],
         order: [['createdAt', 'DESC']]
       });
+      
+      // Manually fetch CSV comparison creators
+      for (const comparison of csvComparisons) {
+        if (comparison.userId) {
+          const user = await User.findByPk(comparison.userId, {
+            attributes: ['id', 'name', 'username']
+          });
+          comparison.creator = user;
+        } else {
+          comparison.creator = null;
+        }
+      }
+      
+      console.log('Fetching user non-ISO comparisons');
+      nonIsoComparisons = await NonISOComparison.findAll({
+        where: { userId: req.user.id },
+        order: [['createdAt', 'DESC']]
+      });
+      
+      // Manually fetch non-ISO comparison creators
+      for (const comparison of nonIsoComparisons) {
+        if (comparison.userId) {
+          const user = await User.findByPk(comparison.userId, {
+            attributes: ['id', 'name', 'username']
+          });
+          comparison.creator = user;
+        } else {
+          comparison.creator = null;
+        }
+      }
     }
     
+    console.log('Combining all test data');
     // Combine all types of tests into a single array with type identifier
     const allTests = [
       ...comparisons.map(comp => ({
@@ -112,18 +193,29 @@ const history = async (req, res) => {
         createdAt: csv.createdAt,
         data: csv,
         creator: csv.creator || { name: req.user ? req.user.name : 'Unknown' }
+      })),
+      ...nonIsoComparisons.map(nonIso => ({
+        id: nonIso.id,
+        name: nonIso.testCase,
+        type: 'noniso',
+        createdAt: nonIso.createdAt,
+        data: nonIso,
+        creator: nonIso.creator || { name: req.user ? req.user.name : 'Unknown' }
       }))
     ];
     
+    console.log('Sorting test data');
     // Sort combined list by creation date (newest first)
     allTests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
+    console.log('Rendering history view');
     res.render('history', {
       title: 'Riwayat Test',
       allTests,
       comparisons,
       testCases,
       csvComparisons,
+      nonIsoComparisons,
       formatDate: viewHelpers.formatDate,
       formatFileSize: viewHelpers.formatFileSize,
       canEdit: canEditTestCase,
@@ -139,6 +231,7 @@ const history = async (req, res) => {
       comparisons: [],
       testCases: [],
       csvComparisons: [],
+      nonIsoComparisons: [],
       activeMenu: 'history'
     });
   }

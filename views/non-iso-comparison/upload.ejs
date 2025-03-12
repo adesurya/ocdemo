@@ -1,0 +1,365 @@
+<%- include('../partials/header') %>
+
+<div class="max-w-6xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">Komparasi File Non-ISO</h2>
+        
+        <form id="non-iso-comparison-form" action="/non-iso-comparison/process" method="POST" enctype="multipart/form-data">
+            <div class="mb-6">
+                <label for="testCase" class="block text-gray-700 font-semibold mb-2">TEST CASE</label>
+                <input 
+                    type="text" 
+                    id="testCase" 
+                    name="testCase" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter test case name" 
+                    required
+                >
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- HPUX File Upload -->
+                <div class="upload-container">
+                    <label for="hpuxFile" class="block text-gray-700 font-semibold mb-2">HPUX File</label>
+                    <div 
+                        id="hpuxDropzone" 
+                        class="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                        <i class="fas fa-file-alt text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 mb-2">Drag & drop a file here or click to browse</p>
+                        <p class="text-xs text-gray-400">All file types supported (max 100MB)</p>
+                        <input 
+                            type="file" 
+                            id="hpuxFile" 
+                            name="hpuxFile" 
+                            class="hidden" 
+                            required
+                        >
+                    </div>
+                    <div id="hpuxPreview" class="mt-3 hidden">
+                        <div class="relative p-4 bg-gray-50 rounded-md border border-gray-200">
+                            <div class="flex items-center">
+                                <i id="hpuxFileIcon" class="fas fa-file text-xl text-gray-400 mr-3"></i>
+                                <div>
+                                    <p id="hpuxFileName" class="font-medium text-gray-700 truncate"></p>
+                                    <p id="hpuxFileSize" class="text-sm text-gray-500"></p>
+                                </div>
+                                <button type="button" id="removeHpuxFile" class="ml-auto text-gray-400 hover:text-red-500">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Linux File Upload -->
+                <div class="upload-container">
+                    <label for="linuxFile" class="block text-gray-700 font-semibold mb-2">LINUX File</label>
+                    <div 
+                        id="linuxDropzone" 
+                        class="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                        <i class="fas fa-file-alt text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 mb-2">Drag & drop a file here or click to browse</p>
+                        <p class="text-xs text-gray-400">All file types supported (max 100MB)</p>
+                        <input 
+                            type="file" 
+                            id="linuxFile" 
+                            name="linuxFile" 
+                            class="hidden" 
+                            required
+                        >
+                    </div>
+                    <div id="linuxPreview" class="mt-3 hidden">
+                        <div class="relative p-4 bg-gray-50 rounded-md border border-gray-200">
+                            <div class="flex items-center">
+                                <i id="linuxFileIcon" class="fas fa-file text-xl text-gray-400 mr-3"></i>
+                                <div>
+                                    <p id="linuxFileName" class="font-medium text-gray-700 truncate"></p>
+                                    <p id="linuxFileSize" class="text-sm text-gray-500"></p>
+                                </div>
+                                <button type="button" id="removeLinuxFile" class="ml-auto text-gray-400 hover:text-red-500">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md">
+                <h3 class="text-lg font-semibold mb-1">Non-ISO File Comparison</h3>
+                <p class="mb-2">This feature compares any two files, including binary files and files with different encodings (EBCDIC, ASCII).</p>
+                <p>The system will automatically detect file encodings and show differences between the files.</p>
+                <p class="text-sm mt-2">Maximum file size: 100MB</p>
+            </div>
+            
+            <div class="flex justify-end">
+                <button 
+                    type="submit" 
+                    id="compareButton" 
+                    class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    <span id="buttonText">Bandingkan</span>
+                    <span id="loadingSpinner" class="hidden">
+                        <i class="fas fa-spinner fa-spin"></i> Processing...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Recent Comparisons Section -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Comparisons</h3>
+        <div id="recent-comparisons">
+            <% if (locals.recentComparisons && recentComparisons.length > 0) { %>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Test Case</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encoding</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Differences</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <% recentComparisons.forEach(comparison => { %>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900"><%= comparison.testCase %></td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        <div>
+                                            <span class="text-xs text-blue-600">HPUX:</span> <%= comparison.hpuxFileName %>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="text-xs text-green-600">Linux:</span> <%= comparison.linuxFileName %>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        <div>
+                                            <span class="text-xs text-blue-600">HPUX:</span> <%= comparison.hpuxEncoding || 'Unknown' %>
+                                        </div>
+                                        <div class="mt-1">
+                                            <span class="text-xs text-green-600">Linux:</span> <%= comparison.linuxEncoding || 'Unknown' %>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500"><%= new Date(comparison.createdAt).toLocaleString('id-ID') %></td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        <% 
+                                            let badgeClass = comparison.differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+                                        %>
+                                        <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
+                                            <%= comparison.differenceCount %> differences
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        <div class="flex space-x-2">
+                                            <a 
+                                                href="/non-iso-comparison/results/<%= comparison.id %>" 
+                                                class="text-blue-600 hover:text-blue-800"
+                                                title="View Details"
+                                            >
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a 
+                                                href="/non-iso-comparison/download/<%= comparison.id %>" 
+                                                class="text-blue-600 hover:text-blue-800"
+                                                title="Download JSON"
+                                            >
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <div class="text-center py-4 text-gray-500">
+                    <p>No comparisons found. Start comparing files!</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const testCaseInput = document.getElementById('testCase');
+        const hpuxDropzone = document.getElementById('hpuxDropzone');
+        const linuxDropzone = document.getElementById('linuxDropzone');
+        const hpuxInput = document.getElementById('hpuxFile');
+        const linuxInput = document.getElementById('linuxFile');
+        const hpuxPreview = document.getElementById('hpuxPreview');
+        const linuxPreview = document.getElementById('linuxPreview');
+        const hpuxFileName = document.getElementById('hpuxFileName');
+        const linuxFileName = document.getElementById('linuxFileName');
+        const hpuxFileSize = document.getElementById('hpuxFileSize');
+        const linuxFileSize = document.getElementById('linuxFileSize');
+        const hpuxFileIcon = document.getElementById('hpuxFileIcon');
+        const linuxFileIcon = document.getElementById('linuxFileIcon');
+        const removeHpuxButton = document.getElementById('removeHpuxFile');
+        const removeLinuxButton = document.getElementById('removeLinuxFile');
+        const compareButton = document.getElementById('compareButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const form = document.getElementById('non-iso-comparison-form');
+        
+        // Set up dropzone for HPUX
+        setupDropzone(hpuxDropzone, hpuxInput, hpuxPreview, hpuxFileName, hpuxFileSize, hpuxFileIcon);
+        
+        // Set up dropzone for Linux
+        setupDropzone(linuxDropzone, linuxInput, linuxPreview, linuxFileName, linuxFileSize, linuxFileIcon);
+        
+        // Remove file event listeners
+        removeHpuxButton.addEventListener('click', () => {
+            hpuxInput.value = '';
+            hpuxPreview.classList.add('hidden');
+            hpuxDropzone.classList.remove('hidden');
+            updateSubmitButtonState();
+        });
+        
+        removeLinuxButton.addEventListener('click', () => {
+            linuxInput.value = '';
+            linuxPreview.classList.add('hidden');
+            linuxDropzone.classList.remove('hidden');
+            updateSubmitButtonState();
+        });
+        
+        // Input change listeners
+        hpuxInput.addEventListener('change', () => handleFileInputChange(hpuxInput, hpuxPreview, hpuxFileName, hpuxFileSize, hpuxDropzone, hpuxFileIcon));
+        linuxInput.addEventListener('change', () => handleFileInputChange(linuxInput, linuxPreview, linuxFileName, linuxFileSize, linuxDropzone, linuxFileIcon));
+        
+        // Test case input change
+        testCaseInput.addEventListener('input', updateSubmitButtonState);
+        
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            // Show loading state
+            buttonText.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+            compareButton.disabled = true;
+        });
+        
+        // Functions
+        function setupDropzone(dropzone, input, preview, fileNameElement, fileSizeElement, fileIconElement) {
+            // Prevent default behavior for drag events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+                dropzone.addEventListener(event, preventDefaults, false);
+            });
+            
+            // Highlight dropzone on dragenter/dragover
+            ['dragenter', 'dragover'].forEach(event => {
+                dropzone.addEventListener(event, function() {
+                    dropzone.classList.add('border-blue-400', 'bg-blue-50');
+                }, false);
+            });
+            
+            // Remove highlight on dragleave/drop
+            ['dragleave', 'drop'].forEach(event => {
+                dropzone.addEventListener(event, function() {
+                    dropzone.classList.remove('border-blue-400', 'bg-blue-50');
+                }, false);
+            });
+            
+            // Handle drop event
+            dropzone.addEventListener('drop', function(e) {
+                const files = e.dataTransfer.files;
+                if (files.length) {
+                    input.files = files;
+                    handleFileInputChange(input, preview, fileNameElement, fileSizeElement, dropzone, fileIconElement);
+                }
+            }, false);
+            
+            // Open file dialog when clicking on dropzone
+            dropzone.addEventListener('click', function() {
+                input.click();
+            });
+        }
+        
+        function handleFileInputChange(input, preview, fileNameElement, fileSizeElement, dropzone, fileIconElement) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Check file size limit (100MB)
+                if (file.size > 100 * 1024 * 1024) {
+                    alert('File exceeds the 100MB size limit.');
+                    input.value = '';
+                    return;
+                }
+                
+                // Update file icon based on file extension
+                updateFileIcon(fileIconElement, file.name);
+                
+                // Update preview
+                fileNameElement.textContent = file.name;
+                fileSizeElement.textContent = formatFileSize(file.size);
+                preview.classList.remove('hidden');
+                dropzone.classList.add('hidden');
+                
+                updateSubmitButtonState();
+            }
+        }
+        
+        function updateFileIcon(iconElement, fileName) {
+            // Get file extension
+            const extension = fileName.split('.').pop().toLowerCase();
+            
+            // Map common extensions to Font Awesome icons
+            const iconMap = {
+                'pdf': 'fa-file-pdf',
+                'doc': 'fa-file-word',
+                'docx': 'fa-file-word',
+                'xls': 'fa-file-excel',
+                'xlsx': 'fa-file-excel',
+                'csv': 'fa-file-csv',
+                'txt': 'fa-file-alt',
+                'jpg': 'fa-file-image',
+                'jpeg': 'fa-file-image',
+                'png': 'fa-file-image',
+                'gif': 'fa-file-image',
+                'zip': 'fa-file-archive',
+                'rar': 'fa-file-archive',
+                'mp3': 'fa-file-audio',
+                'mp4': 'fa-file-video',
+                'html': 'fa-file-code',
+                'css': 'fa-file-code',
+                'js': 'fa-file-code'
+            };
+            
+            // Set icon class
+            iconElement.className = 'fas ' + (iconMap[extension] || 'fa-file') + ' text-xl text-gray-400 mr-3';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function updateSubmitButtonState() {
+            const hasTestCase = testCaseInput.value.trim() !== '';
+            const hasHpuxFile = hpuxInput.files && hpuxInput.files.length > 0;
+            const hasLinuxFile = linuxInput.files && linuxInput.files.length > 0;
+            
+            compareButton.disabled = !(hasTestCase && hasHpuxFile && hasLinuxFile);
+        }
+    });
+</script>
+
+<%- include('../partials/footer') %>

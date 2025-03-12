@@ -17,6 +17,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const testCaseRoutes = require('./routes/testCase');
 const csvComparisonRoutes = require('./routes/csvComparison'); // Import CSV comparison routes
+const nonIsoComparisonRoutes = require('./routes/nonIsoComparison');
 
 // Import middleware
 const { isAuthenticated } = require('./middlewares/authMiddleware');
@@ -27,6 +28,8 @@ const PORT = process.env.PORT || 3000;
 // Create necessary directories
 const uploadsDir = path.join(__dirname, 'uploads');
 const csvComparisonDir = path.join(uploadsDir, 'csv-comparison');
+const nonIsoComparisonDir = path.join(uploadsDir, 'non-iso-comparison');
+
 const scenarioRoutes = require('./routes/scenario');
 
 
@@ -36,6 +39,10 @@ if (!fs.existsSync(uploadsDir)) {
 
 if (!fs.existsSync(csvComparisonDir)) {
   fs.mkdirSync(csvComparisonDir);
+}
+
+if (!fs.existsSync(nonIsoComparisonDir)) {
+  fs.mkdirSync(nonIsoComparisonDir);
 }
 
 // Set up template engine
@@ -105,6 +112,7 @@ app.use('/', authRoutes); // Auth routes don't need authentication
 app.use('/users', userRoutes); // User routes have their own auth middleware
 app.use('/test-cases', testCaseRoutes); // Add test case routes
 app.use('/csv-comparison', csvComparisonRoutes); // Add CSV comparison routes
+app.use('/non-iso-comparison', nonIsoComparisonRoutes); // Add non-ISO comparison routes
 app.use('/', isAuthenticated, webRoutes); // Protect web routes
 app.use('/api', isAuthenticated, apiRoutes); // Protect API routes
 
@@ -118,14 +126,44 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Database sync and server start
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log('Database synced successfully');
+const createNonIsoTable = async () => {
+  try {
+    // Use raw query to create table without modifying existing tables
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS non_iso_comparisons (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        test_case VARCHAR(255) NOT NULL,
+        hpux_file_path VARCHAR(255) NOT NULL,
+        linux_file_path VARCHAR(255) NOT NULL,
+        hpux_file_name VARCHAR(255) NOT NULL,
+        linux_file_name VARCHAR(255) NOT NULL,
+        hpux_encoding VARCHAR(50),
+        linux_encoding VARCHAR(50),
+        differences LONGTEXT,
+        difference_count INT NOT NULL DEFAULT 0,
+        user_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('non_iso_comparisons table created or already exists');
+  } catch (error) {
+    console.error('Error creating non_iso_comparisons table:', error);
+  }
+};
+
+// Modified database sync with { alter: false } to prevent modifying existing tables
+sequelize.sync({ alter: false })
+  .then(async () => {
+    console.log('Database connected successfully');
+    
+    // Create non_iso_comparisons table separately
+    await createNonIsoTable();
+    
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
     });
   })
   .catch(err => {
-    console.error('Unable to sync database:', err);
+    console.error('Unable to connect to database:', err);
   });

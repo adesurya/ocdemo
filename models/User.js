@@ -18,7 +18,8 @@ User.init({
   username: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    // Remove the unique constraint that's causing the issue
+    // unique: true,
     validate: {
       notEmpty: {
         msg: 'Username tidak boleh kosong'
@@ -50,7 +51,8 @@ User.init({
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    // Remove this unique constraint too
+    // unique: true,
     validate: {
       isEmail: {
         msg: 'Format email tidak valid'

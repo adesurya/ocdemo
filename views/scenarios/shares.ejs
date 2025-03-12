@@ -68,7 +68,7 @@
             <span>Type: <strong><%= item.isFolder ? 'Folder' : 'File' %></strong></span>
             <% if (!item.isFolder && item.fileSize) { %>
               <span class="mx-2">•</span>
-              <span>Size: <strong><%= formatFileSize ? formatFileSize(item.fileSize) : item.fileSize + ' bytes' %></strong></span>
+              <span>Size: <strong><%= typeof formatFileSize === 'function' ? formatFileSize(item.fileSize) : formatFileSizeFallback(item.fileSize) %></strong></span>
             <% } %>
           </div>
         </div>
@@ -210,17 +210,27 @@
     
     // Format file size function if not provided by server
     if (typeof formatFileSize !== 'function') {
-      window.formatFileSize = function(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-      };
-    }
-  });
+    window.formatFileSize = function(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+  }
+});
+
+  function formatFileSizeFallback(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
 </script>
 
 <%- include('../partials/footer') %>

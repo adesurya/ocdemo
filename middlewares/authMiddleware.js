@@ -8,6 +8,7 @@ const { User } = require('../models/User');
  * @param {Function} next - Express next function
  */
 const isAuthenticated = async (req, res, next) => {
+  console.log('Authentication middleware started');
   try {
     // Get token from cookies
     const token = req.cookies.auth_token;
@@ -38,10 +39,10 @@ const isAuthenticated = async (req, res, next) => {
     
     // Set user info for views
     res.locals.user = req.user;
-    
+    console.log('Authentication middleware completed successfully');
     next();
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error('Authentication middleware error:', error);
     res.clearCookie('auth_token');
     res.redirect('/login?message=Sesi Anda telah berakhir, silakan login kembali');
   }

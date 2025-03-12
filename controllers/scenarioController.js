@@ -4,6 +4,7 @@ const { User } = require('../models/User');
 const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
+const viewHelpers = require('../utils/viewHelpers');
 
 /**
  * Format file size dari bytes ke format yang dapat dibaca manusia
@@ -438,7 +439,8 @@ const manageShares = async (req, res) => {
       shares,
       availableUsers,
       error: errorMessage,
-      success: successMessage
+      success: successMessage,
+      formatFileSize: viewHelpers.formatFileSize // Add this line to pass the function
     });
   } catch (error) {
     console.error('Error loading share management:', error);

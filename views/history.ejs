@@ -2,13 +2,19 @@
 
 <div class="max-w-6xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
+        <% if (locals.error && error) { %>
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+                <p><%= error %></p>
+            </div>
+        <% } %>
+        
         <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Riwayat Test</h2>
         
         <div class="mb-4 sm:mb-6">
             <div class="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
                 <div class="flex items-center">
                     <span class="text-gray-600 mr-2">Total:</span>
-                    <span class="font-medium text-blue-600"><%= locals.allTests ? allTests.length : (locals.comparisons ? comparisons.length : 0) + (locals.testCases ? testCases.length : 0) + (locals.csvComparisons ? csvComparisons.length : 0) %> tests</span>
+                    <span class="font-medium text-blue-600"><%= allTests.length %> tests</span>
                 </div>
                 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
@@ -22,7 +28,11 @@
                     </div>
                     <div class="flex items-center">
                         <input type="checkbox" id="filterCsvComparison" class="mr-1 test-filter" checked data-type="csvcomparison">
-                        <label for="filterCsvComparison" class="text-sm text-gray-600">CSV/TXT Comparisons</label>
+                        <label for="filterCsvComparison" class="text-sm text-gray-600">CSV/TXT</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="filterNonIso" class="mr-1 test-filter" checked data-type="noniso">
+                        <label for="filterNonIso" class="text-sm text-gray-600">Non-ISO</label>
                     </div>
                 </div>
                 
@@ -53,45 +63,8 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <% 
-                    // Fallback jika allTests tidak tersedia, kita gabungkan dari comparisons, testCases, dan csvComparisons
-                    let combinedTests = locals.allTests || [];
-                    
-                    if (!locals.allTests && (locals.comparisons || locals.testCases || locals.csvComparisons)) {
-                        combinedTests = [
-                            ...(locals.comparisons || []).map(comp => ({
-                                id: comp.id,
-                                name: comp.testCase,
-                                type: 'comparison',
-                                createdAt: comp.createdAt,
-                                data: comp,
-                                creator: { name: 'System' }
-                            })),
-                            ...(locals.testCases || []).map(test => ({
-                                id: test.id,
-                                name: test.name,
-                                type: 'testcase',
-                                createdAt: test.createdAt,
-                                data: test,
-                                creator: test.creator
-                            })),
-                            ...(locals.csvComparisons || []).map(csv => ({
-                                id: csv.id,
-                                name: csv.testCase,
-                                type: 'csvcomparison',
-                                createdAt: csv.createdAt,
-                                data: csv,
-                                creator: csv.creator || { name: 'System' }
-                            }))
-                        ];
-                        
-                        // Sort by createdAt (newest first)
-                        combinedTests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                    }
-                    %>
-                    
-                    <% if (combinedTests && combinedTests.length > 0) { %>
-                        <% combinedTests.forEach(test => { %>
+                    <% if (allTests && allTests.length > 0) { %>
+                        <% allTests.forEach(test => { %>
                             <tr class="hover:bg-gray-50 test-row" data-type="<%= test.type %>">
                                 <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm">
                                     <% if (test.type === 'comparison') { %>
@@ -108,6 +81,11 @@
                                         <span class="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
                                             <span class="hidden sm:inline">CSV/TXT</span>
                                             <span class="sm:hidden">C</span>
+                                        </span>
+                                    <% } else if (test.type === 'noniso') { %>
+                                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
+                                            <span class="hidden sm:inline">Non-ISO</span>
+                                            <span class="sm:hidden">N</span>
                                         </span>
                                     <% } %>
                                 </td>
@@ -141,144 +119,11 @@
                                     <%= typeof formatDate === 'function' ? formatDate(test.createdAt) : new Date(test.createdAt).toLocaleString('id-ID') %>
                                 </td>
                                 <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500">
-                                    <% if (test.type === 'comparison') { %>
-                                        <% 
-                                            let differences = JSON.parse(test.data.differences);
-                                            let count = Object.keys(differences).length;
-                                            let badgeClass = count > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
-                                        %>
-                                        <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
-                                            <%= count %> perbedaan
-                                        </span>
-                                    <% } else if (test.type === 'testcase') { %>
-                                        <div class="flex items-center">
-                                            <% 
-                                                // Determine file icon based on file type
-                                                let iconClass = 'fa-file';
-                                                const fileType = test.data.fileType.toLowerCase();
-                                                
-                                                if (fileType.includes('image')) {
-                                                    iconClass = 'fa-file-image';
-                                                } else if (fileType.includes('pdf')) {
-                                                    iconClass = 'fa-file-pdf';
-                                                } else if (fileType.includes('word') || fileType.includes('doc')) {
-                                                    iconClass = 'fa-file-word';
-                                                } else if (fileType.includes('excel') || fileType.includes('sheet') || fileType.includes('csv')) {
-                                                    iconClass = 'fa-file-excel';
-                                                } else if (fileType.includes('zip') || fileType.includes('archive')) {
-                                                    iconClass = 'fa-file-archive';
-                                                } else if (fileType.includes('text')) {
-                                                    iconClass = 'fa-file-alt';
-                                                }
-                                            %>
-                                            <i class="fas <%= iconClass %> mr-2 text-gray-400"></i>
-                                            <span class="truncate max-w-[80px] sm:max-w-[120px] md:max-w-xs" title="<%= test.data.originalFilename %>">
-                                                <%= test.data.originalFilename %>
-                                            </span>
-                                            <span class="ml-2 text-xs text-gray-400 hidden sm:inline">
-                                                (<%= typeof formatFileSize === 'function' ? formatFileSize(test.data.fileSize) : test.data.fileSize + ' bytes' %>)
-                                            </span>
-                                        </div>
-                                    <% } else if (test.type === 'csvcomparison') { %>
-                                        <% 
-                                            let badgeClass = test.data.differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
-                                        %>
-                                        <div>
-                                            <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
-                                                <%= test.data.differenceCount %> perbedaan
-                                            </span>
-                                            <div class="text-xs text-gray-500 mt-1">
-                                                <% 
-                                                    // Get file extensions for appropriate icons
-                                                    const hpuxExt = test.data.hpuxFileName.split('.').pop().toLowerCase();
-                                                    const linuxExt = test.data.linuxFileName.split('.').pop().toLowerCase();
-                                                %>
-                                                <i class="fas fa-file-<%= hpuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> HPUX: <%= test.data.hpuxFileName %><br>
-                                                <i class="fas fa-file-<%= linuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> Linux: <%= test.data.linuxFileName %>
-                                            </div>
-                                        </div>
-                                    <% } %>
+                                    <%- include('partials/history-test-info', { test: test, formatFileSize: formatFileSize }) %>
                                 </td>
                                 <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500">
                                     <div class="flex space-x-1 sm:space-x-2">
-                                        <% if (test.type === 'comparison') { %>
-                                            <a 
-                                                href="/comparison/<%= test.data.id %>" 
-                                                class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100"
-                                                title="Lihat Detail"
-                                            >
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <button 
-                                                class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100 download-json-btn" 
-                                                data-id="<%= test.data.id %>"
-                                                title="Unduh JSON"
-                                            >
-                                                <i class="fas fa-download"></i>
-                                            </button>
-                                            <form action="/api/comparison/<%= test.data.id %>?_method=DELETE" method="POST" class="inline-block delete-comparison-form">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete Comparison">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        <% } else if (test.type === 'testcase') { %>
-                                            <a 
-                                                href="/test-cases/<%= test.data.id %>" 
-                                                class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100"
-                                                title="Lihat Detail"
-                                            >
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a 
-                                                href="/test-cases/<%= test.data.id %>/download" 
-                                                class="text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-100"
-                                                title="Unduh Evidence"
-                                            >
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                            
-                                            <% 
-                                            // Check if current user can edit this test case
-                                            const canEditThisTest = typeof canEdit === 'function' && locals.currentUser ? 
-                                                canEdit(locals.currentUser, test.data) : 
-                                                (locals.currentUser && (locals.currentUser.role === 'admin' || (test.data.userId && test.data.userId === locals.currentUser.id)));
-                                            %>
-                                            
-                                            <% if (canEditThisTest) { %>
-                                                <a 
-                                                    href="/test-cases/<%= test.data.id %>/edit" 
-                                                    class="text-yellow-600 hover:text-yellow-800 p-1 rounded-full hover:bg-yellow-100"
-                                                    title="Edit Test Case"
-                                                >
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <form action="/test-cases/<%= test.data.id %>?_method=DELETE" method="POST" class="inline-block delete-form">
-                                                    <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete Test Case">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            <% } %>
-                                        <% } else if (test.type === 'csvcomparison') { %>
-                                            <a 
-                                                href="/csv-comparison/results/<%= test.data.id %>" 
-                                                class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100"
-                                                title="Lihat Detail"
-                                            >
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a 
-                                                href="/csv-comparison/download/<%= test.data.id %>" 
-                                                class="text-purple-600 hover:text-purple-800 p-1 rounded-full hover:bg-purple-100"
-                                                title="Unduh JSON"
-                                            >
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                            <form action="/csv-comparison/<%= test.data.id %>?_method=DELETE" method="POST" class="inline-block delete-csv-form">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete CSV/TXT Comparison">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        <% } %>
+                                        <%- include('partials/history-test-actions', { test: test, currentUser: currentUser, canEdit: canEdit }) %>
                                     </div>
                                 </td>
                             </tr>
@@ -393,15 +238,7 @@
             noResults.style.display = foundResults ? 'none' : 'block';
         }
         
-        // Download JSON for a comparison
-        document.querySelectorAll('.download-json-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const comparisonId = this.getAttribute('data-id');
-                downloadComparison(comparisonId);
-            });
-        });
-        
-        // Confirm delete for test cases
+        // Confirm delete for various test types
         document.querySelectorAll('.delete-form').forEach(form => {
             form.addEventListener('submit', function(e) {
                 if (!confirm('Apakah Anda yakin ingin menghapus test case ini? Tindakan ini tidak dapat dibatalkan.')) {
@@ -410,7 +247,6 @@
             });
         });
         
-        // Confirm delete for image comparisons
         document.querySelectorAll('.delete-comparison-form').forEach(form => {
             form.addEventListener('submit', function(e) {
                 if (!confirm('Apakah Anda yakin ingin menghapus komparasi image ini? Tindakan ini tidak dapat dibatalkan.')) {
@@ -419,7 +255,6 @@
             });
         });
         
-        // Confirm delete for CSV/TXT comparisons
         document.querySelectorAll('.delete-csv-form').forEach(form => {
             form.addEventListener('submit', function(e) {
                 if (!confirm('Apakah Anda yakin ingin menghapus komparasi CSV/TXT ini? Tindakan ini tidak dapat dibatalkan.')) {
@@ -428,8 +263,16 @@
             });
         });
         
-        // Function to download a single comparison
-        function downloadComparison(comparisonId) {
+        document.querySelectorAll('.delete-noniso-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('Apakah Anda yakin ingin menghapus komparasi Non-ISO ini? Tindakan ini tidak dapat dibatalkan.')) {
+                    e.preventDefault();
+                }
+            });
+        });
+        
+        // Function to download a comparison
+        window.downloadComparison = function(comparisonId) {
             fetch(`/api/comparison/${comparisonId}`)
                 .then(response => response.json())
                 .then(data => {

@@ -1,0 +1,71 @@
+<% 
+/* This partial handles the information display for each test type in the history table */
+if (test.type === 'comparison') { 
+    let differences = JSON.parse(test.data.differences);
+    let count = Object.keys(differences).length;
+    let badgeClass = count > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+%>
+    <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
+        <%= count %> perbedaan
+    </span>
+
+<% } else if (test.type === 'testcase') { 
+    // Determine file icon based on file type
+    let iconClass = 'fa-file';
+    const fileType = test.data.fileType.toLowerCase();
+    
+    if (fileType.includes('image')) {
+        iconClass = 'fa-file-image';
+    } else if (fileType.includes('pdf')) {
+        iconClass = 'fa-file-pdf';
+    } else if (fileType.includes('word') || fileType.includes('doc')) {
+        iconClass = 'fa-file-word';
+    } else if (fileType.includes('excel') || fileType.includes('sheet') || fileType.includes('csv')) {
+        iconClass = 'fa-file-excel';
+    } else if (fileType.includes('zip') || fileType.includes('archive')) {
+        iconClass = 'fa-file-archive';
+    } else if (fileType.includes('text')) {
+        iconClass = 'fa-file-alt';
+    }
+%>
+    <div class="flex items-center">
+        <i class="fas <%= iconClass %> mr-2 text-gray-400"></i>
+        <span class="truncate max-w-[80px] sm:max-w-[120px] md:max-w-xs" title="<%= test.data.originalFilename %>">
+            <%= test.data.originalFilename %>
+        </span>
+        <span class="ml-2 text-xs text-gray-400 hidden sm:inline">
+            (<%= typeof formatFileSize === 'function' ? formatFileSize(test.data.fileSize) : test.data.fileSize + ' bytes' %>)
+        </span>
+    </div>
+
+<% } else if (test.type === 'csvcomparison') { 
+    let badgeClass = test.data.differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+%>
+    <div>
+        <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
+            <%= test.data.differenceCount %> perbedaan
+        </span>
+        <div class="text-xs text-gray-500 mt-1">
+            <% 
+            // Get file extensions for appropriate icons
+            const hpuxExt = test.data.hpuxFileName.split('.').pop().toLowerCase();
+            const linuxExt = test.data.linuxFileName.split('.').pop().toLowerCase();
+            %>
+            <i class="fas fa-file-<%= hpuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> HPUX: <%= test.data.hpuxFileName %><br>
+            <i class="fas fa-file-<%= linuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> Linux: <%= test.data.linuxFileName %>
+        </div>
+    </div>
+
+<% } else if (test.type === 'noniso') { 
+    let badgeClass = test.data.differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+%>
+    <div>
+        <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
+            <%= test.data.differenceCount %> perbedaan
+        </span>
+        <div class="text-xs text-gray-500 mt-1">
+            <i class="fas fa-file mr-1"></i> HPUX: <%= test.data.hpuxFileName %><br>
+            <i class="fas fa-file mr-1"></i> Linux: <%= test.data.linuxFileName %>
+        </div>
+    </div>
+<% } %>
