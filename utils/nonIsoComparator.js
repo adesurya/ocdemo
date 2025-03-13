@@ -86,6 +86,54 @@ function readFileWithEncoding(filePath) {
 }
 
 /**
+ * Find exact differences between two strings
+ * @param {String} str1 - First string to compare
+ * @param {String} str2 - Second string to compare 
+ * @returns {Object} - Object containing details of the differences
+ */
+function findStringDifferences(str1, str2) {
+  const differences = [];
+  const maxLength = Math.max(str1.length, str2.length);
+  
+  // Keep track of current differences
+  let currentDiff = null;
+  
+  for (let i = 0; i < maxLength; i++) {
+    const char1 = i < str1.length ? str1[i] : null;
+    const char2 = i < str2.length ? str2[i] : null;
+    
+    if (char1 !== char2) {
+      // If we're not currently tracking a difference, start a new one
+      if (currentDiff === null) {
+        currentDiff = {
+          position: i,
+          hpuxChars: '',
+          linuxChars: '',
+          contextBefore: str1.substring(Math.max(0, i - 10), i),
+          contextAfter: ''  // Will be filled when difference ends
+        };
+      }
+      
+      // Add the different characters
+      if (char1 !== null) currentDiff.hpuxChars += char1;
+      if (char2 !== null) currentDiff.linuxChars += char2;
+    } else if (currentDiff !== null) {
+      // The difference has ended, add context after
+      currentDiff.contextAfter = str1.substring(i, Math.min(str1.length, i + 10));
+      differences.push(currentDiff);
+      currentDiff = null;
+    }
+  }
+  
+  // Don't forget a difference that extends to the end of the string
+  if (currentDiff !== null) {
+    differences.push(currentDiff);
+  }
+  
+  return differences;
+}
+
+/**
  * Compare two files with content-aware encoding detection
  * @param {String} hpuxFilePath - Path to the HPUX file
  * @param {String} linuxFilePath - Path to the Linux file
@@ -97,6 +145,7 @@ function compareNonIsoFiles(hpuxFilePath, linuxFilePath) {
     const linuxData = readFileWithEncoding(linuxFilePath);
     
     const differences = [];
+    const detailedDifferences = [];
     let differenceCount = 0;
     
     // Handle binary files differently
@@ -151,12 +200,36 @@ function compareNonIsoFiles(hpuxFilePath, linuxFilePath) {
       const linuxLine = i < linuxLines.length ? linuxLines[i] : null;
       
       if (hpuxLine !== linuxLine) {
+        // Add to simple differences for compatibility
         differences.push({
           type: 'line',
           lineNumber: i + 1,
           hpuxLine,
           linuxLine
         });
+        
+        // Add detailed string-level differences
+        if (hpuxLine !== null && linuxLine !== null) {
+          // When both lines exist but are different, find character-level differences
+          const stringDifferences = findStringDifferences(hpuxLine, linuxLine);
+          
+          detailedDifferences.push({
+            type: 'string',
+            lineNumber: i + 1,
+            hpuxLine,
+            linuxLine,
+            stringDifferences
+          });
+        } else {
+          // When one line is missing entirely
+          detailedDifferences.push({
+            type: 'missing_line',
+            lineNumber: i + 1,
+            hpuxLine,
+            linuxLine
+          });
+        }
+        
         differenceCount++;
       }
     }
@@ -164,7 +237,8 @@ function compareNonIsoFiles(hpuxFilePath, linuxFilePath) {
     return {
       hpuxEncoding: hpuxData.encoding,
       linuxEncoding: linuxData.encoding,
-      differences,
+      differences,        // Keep original format for backward compatibility
+      detailedDifferences, // New detailed differences with string-level info
       differenceCount,
       binary: false
     };
@@ -176,5 +250,6 @@ function compareNonIsoFiles(hpuxFilePath, linuxFilePath) {
 module.exports = {
   compareNonIsoFiles,
   detectEncoding,
-  readFileWithEncoding
+  readFileWithEncoding,
+  findStringDifferences
 };

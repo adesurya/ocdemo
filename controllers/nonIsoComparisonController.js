@@ -60,7 +60,7 @@ const processComparison = async (req, res) => {
     
     console.log('Processing non-ISO comparison:', { testCase, hpuxFilePath, linuxFilePath });
     
-    // Compare files
+    // Compare files with enhanced string-level detail
     const comparisonResult = await compareNonIsoFiles(hpuxFilePath, linuxFilePath);
     
     // Save to database
@@ -72,7 +72,7 @@ const processComparison = async (req, res) => {
       linuxFileName,
       hpuxEncoding: comparisonResult.hpuxEncoding,
       linuxEncoding: comparisonResult.linuxEncoding,
-      differences: JSON.stringify(comparisonResult.differences),
+      differences: JSON.stringify(comparisonResult),  // Store the entire result including detailed differences
       differenceCount: comparisonResult.differenceCount,
       userId: req.user ? req.user.id : null
     });
@@ -95,6 +95,31 @@ const processComparison = async (req, res) => {
   } catch (error) {
     console.error('Error processing comparison:', error);
     req.flash('error', `Gagal memproses komparasi: ${error.message}`);
+    res.redirect('/non-iso-comparison');
+  }
+};
+
+/**
+ * Show comparison results from session data
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const showComparisonResults = async (req, res) => {
+  try {
+    // Get data from session
+    const comparisonData = req.session.nonIsoComparison;
+    
+    if (!comparisonData) {
+      req.flash('error', 'Tidak ada data komparasi yang tersedia. Silakan upload file kembali.');
+      return res.redirect('/non-iso-comparison');
+    }
+    
+    // Redirect to the saved comparison
+    res.redirect(`/non-iso-comparison/results/${comparisonData.id}`);
+    
+  } catch (error) {
+    console.error('Error showing comparison results:', error);
+    req.flash('error', 'Gagal menampilkan hasil komparasi');
     res.redirect('/non-iso-comparison');
   }
 };
@@ -125,55 +150,51 @@ const showComparisonResultsById = async (req, res) => {
     }
     comparison.creator = creator;
     
-    // Parse JSON data
-    const comparisonData = {
-      id: comparison.id,
-      testCase: comparison.testCase,
-      hpuxFileName: comparison.hpuxFileName,
-      linuxFileName: comparison.linuxFileName,
-      hpuxEncoding: comparison.hpuxEncoding,
-      linuxEncoding: comparison.linuxEncoding,
-      comparisonResult: {
-        differences: JSON.parse(comparison.differences),
-        differenceCount: comparison.differenceCount,
-        identical: comparison.differenceCount === 0
-      },
-      creator: comparison.creator,
-      createdAt: comparison.createdAt,
-      // Determine if files are binary based on encoding
-      binary: comparison.hpuxEncoding === 'binary' || comparison.linuxEncoding === 'binary'
-    };
+    // Parse JSON data - now with enhanced detailed differences
+    let comparisonData;
+    try {
+      // Try to parse the stored differences that now contain the entire comparison result
+      const parsedDifferences = JSON.parse(comparison.differences);
+      
+      comparisonData = {
+        id: comparison.id,
+        testCase: comparison.testCase,
+        hpuxFileName: comparison.hpuxFileName,
+        linuxFileName: comparison.linuxFileName,
+        hpuxEncoding: comparison.hpuxEncoding,
+        linuxEncoding: comparison.linuxEncoding,
+        comparisonResult: parsedDifferences,  // Now contains detailedDifferences
+        creator: comparison.creator,
+        createdAt: comparison.createdAt,
+        binary: parsedDifferences.binary || comparison.hpuxEncoding === 'binary' || comparison.linuxEncoding === 'binary'
+      };
+    } catch (error) {
+      console.error('Error parsing comparison data:', error);
+      
+      // Fallback to the old format if parsing fails
+      comparisonData = {
+        id: comparison.id,
+        testCase: comparison.testCase,
+        hpuxFileName: comparison.hpuxFileName,
+        linuxFileName: comparison.linuxFileName,
+        hpuxEncoding: comparison.hpuxEncoding,
+        linuxEncoding: comparison.linuxEncoding,
+        comparisonResult: {
+          differences: JSON.parse(comparison.differences),
+          differenceCount: comparison.differenceCount,
+          identical: comparison.differenceCount === 0
+        },
+        creator: comparison.creator,
+        createdAt: comparison.createdAt,
+        binary: comparison.hpuxEncoding === 'binary' || comparison.linuxEncoding === 'binary'
+      };
+    }
     
     res.render('non-iso-comparison/results', {
       title: `Hasil Komparasi Non-ISO: ${comparison.testCase}`,
       activeMenu: 'non-iso-comparison',
       comparison: comparisonData
     });
-    
-  } catch (error) {
-    console.error('Error showing comparison results:', error);
-    req.flash('error', 'Gagal menampilkan hasil komparasi');
-    res.redirect('/non-iso-comparison');
-  }
-};
-
-/**
- * Show comparison results from session data
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-const showComparisonResults = async (req, res) => {
-  try {
-    // Get data from session
-    const comparisonData = req.session.nonIsoComparison;
-    
-    if (!comparisonData) {
-      req.flash('error', 'Tidak ada data komparasi yang tersedia. Silakan upload file kembali.');
-      return res.redirect('/non-iso-comparison');
-    }
-    
-    // Redirect to the saved comparison
-    res.redirect(`/non-iso-comparison/results/${comparisonData.id}`);
     
   } catch (error) {
     console.error('Error showing comparison results:', error);
@@ -210,23 +231,39 @@ const downloadComparisonJSON = async (req, res) => {
       }
     }
     
-    // Prepare JSON response
-    const jsonData = {
-      id: comparison.id,
-      testCase: comparison.testCase,
-      hpuxFileName: comparison.hpuxFileName,
-      linuxFileName: comparison.linuxFileName,
-      hpuxEncoding: comparison.hpuxEncoding,
-      linuxEncoding: comparison.linuxEncoding,
-      differences: JSON.parse(comparison.differences),
-      differenceCount: comparison.differenceCount,
-      createdBy: creatorName,
-      createdAt: comparison.createdAt
-    };
+    // Parse the comparison data
+    let comparisonData;
+    try {
+      comparisonData = JSON.parse(comparison.differences);
+      
+      // Add metadata
+      comparisonData.metadata = {
+        id: comparison.id,
+        testCase: comparison.testCase,
+        hpuxFileName: comparison.hpuxFileName,
+        linuxFileName: comparison.linuxFileName,
+        createdBy: creatorName,
+        createdAt: comparison.createdAt
+      };
+    } catch (error) {
+      // Fallback to basic info if parsing fails
+      comparisonData = {
+        id: comparison.id,
+        testCase: comparison.testCase,
+        hpuxFileName: comparison.hpuxFileName,
+        linuxFileName: comparison.linuxFileName,
+        hpuxEncoding: comparison.hpuxEncoding,
+        linuxEncoding: comparison.linuxEncoding,
+        differences: JSON.parse(comparison.differences),
+        differenceCount: comparison.differenceCount,
+        createdBy: creatorName,
+        createdAt: comparison.createdAt
+      };
+    }
     
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="non-iso-comparison-${id}.json"`);
-    res.send(JSON.stringify(jsonData, null, 2));
+    res.send(JSON.stringify(comparisonData, null, 2));
     
   } catch (error) {
     console.error('Error downloading comparison JSON:', error);

@@ -1,153 +1,214 @@
 <%- include('../partials/header') %>
 
 <div class="max-w-6xl mx-auto">
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <div>
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-800">Hasil Komparasi Non-ISO</h2>
-                <p class="text-gray-600 mt-1">Test Case: <span class="font-medium"><%= comparison.testCase %></span></p>
-            </div>
-            
-            <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
-                <a href="/non-iso-comparison" class="text-blue-600 hover:text-blue-800 flex items-center justify-center">
-                    <i class="fas fa-arrow-left mr-1"></i> Back
-                </a>
-                <a 
-                    href="/non-iso-comparison/download/<%= comparison.id %>" 
-                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
-                >
-                    <i class="fas fa-download mr-2"></i> Download JSON
-                </a>
-            </div>
-        </div>
-        
-        <div class="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div class="mb-4 md:mb-0">
-                <div class="flex flex-col md:flex-row md:space-x-6">
-                    <div class="mb-2 md:mb-0">
-                        <span class="block text-sm text-gray-500">HPUX File:</span>
-                        <span class="font-medium text-gray-700"><%= comparison.hpuxFileName %></span>
-                        <span class="block text-xs text-gray-500">Encoding: <%= comparison.hpuxEncoding || 'Unknown' %></span>
-                    </div>
-                    <div>
-                        <span class="block text-sm text-gray-500">Linux File:</span>
-                        <span class="font-medium text-gray-700"><%= comparison.linuxFileName %></span>
-                        <span class="block text-xs text-gray-500">Encoding: <%= comparison.linuxEncoding || 'Unknown' %></span>
-                    </div>
-                </div>
-            </div>
-            
-            <div>
-                <% if (comparison.comparisonResult.differenceCount === 0) { %>
-                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                        <i class="fas fa-check-circle mr-1"></i> Files are identical
-                    </span>
-                <% } else { %>
-                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-                        <i class="fas fa-exclamation-circle mr-1"></i> <%= comparison.comparisonResult.differenceCount %> differences found
-                    </span>
-                <% } %>
-            </div>
-        </div>
-        
-        <div class="border-t pt-4">
-            <h3 class="text-lg font-semibold mb-3 text-gray-700">Comparison Results</h3>
-            
-            <% if (comparison.binary) { %>
-                <!-- Binary file comparison results -->
-                <div class="bg-gray-50 rounded-md p-4 border mb-4">
-                    <p class="text-gray-700 font-medium">
-                        <i class="fas fa-file-code mr-1"></i> 
-                        Binary file comparison
-                    </p>
-                </div>
-            <% } %>
-            
-            <% if (comparison.comparisonResult.differenceCount === 0) { %>
-                <div class="bg-green-50 text-green-700 rounded-md p-6 border border-green-200 text-center">
-                    <i class="fas fa-check-circle text-3xl mb-2"></i>
-                    <p class="text-lg font-medium">The files are identical</p>
-                </div>
-            <% } else { %>
-                <div class="difference-list bg-gray-50 rounded-md border overflow-hidden">
-                    <div class="bg-gray-100 px-4 py-2 border-b">
-                        <h4 class="font-medium text-gray-700"><%= comparison.comparisonResult.differenceCount %> Differences</h4>
-                    </div>
-                    
-                    <div class="p-4">
-                        <% if (comparison.binary) { %>
-                            <!-- Binary difference display -->
-                            <% comparison.comparisonResult.differences.forEach((diff, index) => { %>
-                                <div class="mb-4 pb-4 <%= index < comparison.comparisonResult.differences.length - 1 ? 'border-b' : '' %>">
-                                    <% if (diff.type === 'size') { %>
-                                        <p class="text-gray-800 mb-2"><%= diff.description %></p>
-                                    <% } else if (diff.type === 'binary') { %>
-                                        <p class="text-gray-800 mb-2">
-                                            Offset: <span class="font-mono"><%= diff.offset.toString(16).padStart(8, '0') %></span>
-                                        </p>
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div class="bg-blue-50 p-3 rounded-md">
-                                                <p class="text-xs text-blue-700 mb-1">HPUX</p>
-                                                <p class="font-mono text-gray-800"><%= diff.hpuxValue %></p>
-                                            </div>
-                                            <div class="bg-green-50 p-3 rounded-md">
-                                                <p class="text-xs text-green-700 mb-1">Linux</p>
-                                                <p class="font-mono text-gray-800"><%= diff.linuxValue %></p>
-                                            </div>
-                                        </div>
-                                    <% } %>
-                                </div>
-                            <% }); %>
-                        <% } else { %>
-                            <!-- Text difference display -->
-                            <% comparison.comparisonResult.differences.forEach((diff, index) => { %>
-                                <div class="mb-4 pb-4 <%= index < comparison.comparisonResult.differences.length - 1 ? 'border-b' : '' %>">
-                                    <p class="text-gray-800 mb-2">
-                                        Line: <span class="font-mono font-medium"><%= diff.lineNumber %></span>
-                                    </p>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div class="bg-blue-50 p-3 rounded-md">
-                                            <p class="text-xs text-blue-700 mb-1">HPUX</p>
-                                            <% if (diff.hpuxLine === null) { %>
-                                                <p class="italic text-gray-500">Line doesn't exist</p>
-                                            <% } else { %>
-                                                <pre class="font-mono text-sm whitespace-pre-wrap break-all text-gray-800"><%= diff.hpuxLine %></pre>
-                                            <% } %>
-                                        </div>
-                                        <div class="bg-green-50 p-3 rounded-md">
-                                            <p class="text-xs text-green-700 mb-1">Linux</p>
-                                            <% if (diff.linuxLine === null) { %>
-                                                <p class="italic text-gray-500">Line doesn't exist</p>
-                                            <% } else { %>
-                                                <pre class="font-mono text-sm whitespace-pre-wrap break-all text-gray-800"><%= diff.linuxLine %></pre>
-                                            <% } %>
-                                        </div>
-                                    </div>
-                                </div>
-                            <% }); %>
-                        <% } %>
-                    </div>
-                </div>
-            <% } %>
-        </div>
+  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-800">Hasil Komparasi Non-ISO</h2>
+        <p class="text-gray-600 mt-1">Test Case: <span class="font-medium"><%= comparison.testCase %></span></p>
+      </div>
+      
+      <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row sm:space-x-3 space-y-2 sm:space-y-0">
+        <a href="/non-iso-comparison" class="text-blue-600 hover:text-blue-800 flex items-center justify-center">
+          <i class="fas fa-arrow-left mr-1"></i> Back
+        </a>
+        <a 
+          href="/non-iso-comparison/download/<%= comparison.id %>" 
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
+        >
+          <i class="fas fa-download mr-2"></i> Download JSON
+        </a>
+      </div>
     </div>
+    
+    <div class="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center">
+      <div class="mb-4 md:mb-0">
+        <div class="flex flex-col md:flex-row md:space-x-6">
+          <div class="mb-2 md:mb-0">
+            <span class="block text-sm text-gray-500">HPUX File:</span>
+            <span class="font-medium text-gray-700"><%= comparison.hpuxFileName %></span>
+            <span class="block text-xs text-gray-500">Encoding: <%= comparison.hpuxEncoding || 'Unknown' %></span>
+          </div>
+          <div>
+            <span class="block text-sm text-gray-500">Linux File:</span>
+            <span class="font-medium text-gray-700"><%= comparison.linuxFileName %></span>
+            <span class="block text-xs text-gray-500">Encoding: <%= comparison.linuxEncoding || 'Unknown' %></span>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <% if (comparison.comparisonResult.differenceCount === 0) { %>
+          <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+            <i class="fas fa-check-circle mr-1"></i> Files are identical
+          </span>
+        <% } else { %>
+          <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+            <i class="fas fa-exclamation-circle mr-1"></i> <%= comparison.comparisonResult.differenceCount %> differences found
+          </span>
+        <% } %>
+      </div>
+    </div>
+    
+    <div class="border-t pt-4">
+      <h3 class="text-lg font-semibold mb-3 text-gray-700">Comparison Results</h3>
+      
+      <% if (comparison.binary) { %>
+        <!-- Binary file comparison results -->
+        <div class="bg-gray-50 rounded-md p-4 border mb-4">
+          <p class="text-gray-700 font-medium">
+            <i class="fas fa-file-code mr-1"></i> 
+            Binary file comparison
+          </p>
+        </div>
+      <% } %>
+      
+      <% if (comparison.comparisonResult.differenceCount === 0) { %>
+        <div class="bg-green-50 text-green-700 rounded-md p-6 border border-green-200 text-center">
+          <i class="fas fa-check-circle text-3xl mb-2"></i>
+          <p class="text-lg font-medium">The files are identical</p>
+        </div>
+      <% } else { %>
+        <% if (comparison.comparisonResult.detailedDifferences && comparison.comparisonResult.detailedDifferences.length > 0) { %>
+          <!-- Detailed string-level differences -->
+          <div class="mb-4">
+            <h4 class="text-md font-semibold mb-2 bg-blue-50 p-2 rounded">String-Level Differences</h4>
+            <div class="bg-white border rounded-md overflow-hidden">
+              <% comparison.comparisonResult.detailedDifferences.forEach((diff, index) => { %>
+                <div class="p-4 <%= index < comparison.comparisonResult.detailedDifferences.length - 1 ? 'border-b' : '' %>">
+                  <div class="mb-2 font-medium">Line <%= diff.lineNumber %></div>
+                  
+                  <% if (diff.type === 'string' && diff.stringDifferences && diff.stringDifferences.length > 0) { %>
+                    <% diff.stringDifferences.forEach(stringDiff => { %>
+                      <div class="bg-gray-50 p-3 rounded-md mb-3">
+                        <div class="text-xs text-gray-500 mb-1">Position: <%= stringDiff.position %></div>
+                        <div class="flex flex-col md:flex-row md:space-x-4 mb-2">
+                          <div class="bg-blue-50 p-2 rounded-md flex-1">
+                            <div class="text-xs text-blue-700 mb-1">HPUX</div>
+                            <div class="font-mono">
+                              <span class="text-gray-500"><%= stringDiff.contextBefore %></span>
+                              <span class="bg-red-200 px-1 rounded"><%= stringDiff.hpuxChars || '(none)' %></span>
+                              <span class="text-gray-500"><%= stringDiff.contextAfter %></span>
+                            </div>
+                          </div>
+                          <div class="bg-green-50 p-2 rounded-md flex-1 mt-2 md:mt-0">
+                            <div class="text-xs text-green-700 mb-1">Linux</div>
+                            <div class="font-mono">
+                              <span class="text-gray-500"><%= stringDiff.contextBefore %></span>
+                              <span class="bg-green-200 px-1 rounded"><%= stringDiff.linuxChars || '(none)' %></span>
+                              <span class="text-gray-500"><%= stringDiff.contextAfter %></span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% }); %>
+                  <% } else if (diff.type === 'missing_line') { %>
+                    <!-- Missing line entirely -->
+                    <div class="flex flex-col md:flex-row md:space-x-4">
+                      <div class="bg-blue-50 p-2 rounded-md flex-1">
+                        <div class="text-xs text-blue-700 mb-1">HPUX</div>
+                        <% if (diff.hpuxLine) { %>
+                          <div class="font-mono bg-red-100 p-1 rounded"><%= diff.hpuxLine %></div>
+                        <% } else { %>
+                          <div class="italic text-gray-500">(Line doesn't exist)</div>
+                        <% } %>
+                      </div>
+                      <div class="bg-green-50 p-2 rounded-md flex-1 mt-2 md:mt-0">
+                        <div class="text-xs text-green-700 mb-1">Linux</div>
+                        <% if (diff.linuxLine) { %>
+                          <div class="font-mono bg-green-100 p-1 rounded"><%= diff.linuxLine %></div>
+                        <% } else { %>
+                          <div class="italic text-gray-500">(Line doesn't exist)</div>
+                        <% } %>
+                      </div>
+                    </div>
+                  <% } %>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        <% } else { %>
+          <!-- Original line-by-line differences (fallback) -->
+          <div class="difference-list bg-gray-50 rounded-md border overflow-hidden">
+            <div class="bg-gray-100 px-4 py-2 border-b">
+              <h4 class="font-medium text-gray-700"><%= comparison.comparisonResult.differenceCount %> Differences</h4>
+            </div>
+            
+            <div class="p-4">
+              <% if (comparison.binary) { %>
+                <!-- Binary difference display -->
+                <% comparison.comparisonResult.differences.forEach((diff, index) => { %>
+                  <div class="mb-4 pb-4 <%= index < comparison.comparisonResult.differences.length - 1 ? 'border-b' : '' %>">
+                    <% if (diff.type === 'size') { %>
+                      <p class="text-gray-800 mb-2"><%= diff.description %></p>
+                    <% } else if (diff.type === 'binary') { %>
+                      <p class="text-gray-800 mb-2">
+                        Offset: <span class="font-mono"><%= diff.offset.toString(16).padStart(8, '0') %></span>
+                      </p>
+                      <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-3 rounded-md">
+                          <p class="text-xs text-blue-700 mb-1">HPUX</p>
+                          <p class="font-mono text-gray-800"><%= diff.hpuxValue %></p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-md">
+                          <p class="text-xs text-green-700 mb-1">Linux</p>
+                          <p class="font-mono text-gray-800"><%= diff.linuxValue %></p>
+                        </div>
+                      </div>
+                    <% } %>
+                  </div>
+                <% }); %>
+              <% } else { %>
+                <!-- Text difference display -->
+                <% comparison.comparisonResult.differences.forEach((diff, index) => { %>
+                  <div class="mb-4 pb-4 <%= index < comparison.comparisonResult.differences.length - 1 ? 'border-b' : '' %>">
+                    <p class="text-gray-800 mb-2">
+                      Line: <span class="font-mono font-medium"><%= diff.lineNumber %></span>
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div class="bg-blue-50 p-3 rounded-md">
+                        <p class="text-xs text-blue-700 mb-1">HPUX</p>
+                        <% if (diff.hpuxLine === null) { %>
+                          <p class="italic text-gray-500">Line doesn't exist</p>
+                        <% } else { %>
+                          <pre class="font-mono text-sm whitespace-pre-wrap break-all text-gray-800"><%= diff.hpuxLine %></pre>
+                        <% } %>
+                      </div>
+                      <div class="bg-green-50 p-3 rounded-md">
+                        <p class="text-xs text-green-700 mb-1">Linux</p>
+                        <% if (diff.linuxLine === null) { %>
+                          <p class="italic text-gray-500">Line doesn't exist</p>
+                        <% } else { %>
+                          <pre class="font-mono text-sm whitespace-pre-wrap break-all text-gray-800"><%= diff.linuxLine %></pre>
+                        <% } %>
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              <% } %>
+            </div>
+          </div>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
 </div>
 
 <style>
-    /* Custom styles for the differences display */
-    .difference-list {
-        max-height: 600px;
-        overflow-y: auto;
-    }
-    
-    pre {
-        max-width: 100%;
-        overflow-x: auto;
-    }
-    
-    .font-mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
+  /* Custom styles for the differences display */
+  .difference-list {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  
+  .font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
 </style>
 
 <%- include('../partials/footer') %>
