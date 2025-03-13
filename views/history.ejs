@@ -1,468 +1,196 @@
 <%- include('partials/header') %>
 
 <div class="max-w-6xl mx-auto">
-    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
-        <% if (locals.error && error) { %>
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-                <p><%= error %></p>
-            </div>
-        <% } %>
-        
-        <% if (locals.success && success) { %>
-            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
-                <p><%= success %></p>
-            </div>
-        <% } %>
-        
-        <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Riwayat Test</h2>
-        
-        <div class="mb-4 sm:mb-6">
-            <div class="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
-                <div class="flex items-center">
-                    <span class="text-gray-600 mr-2">Total:</span>
-                    <span class="font-medium text-blue-600"><%= allTests.length %> tests</span>
-                </div>
+  <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-8">
+    <% if (locals.error && error) { %>
+      <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+        <p><%= error %></p>
+      </div>
+    <% } %>
+    
+    <% if (locals.success && success) { %>
+      <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+        <p><%= success %></p>
+      </div>
+    <% } %>
+    
+    <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Riwayat Test</h2>
+    
+    <div class="mb-4 sm:mb-6">
+      <div class="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
+        <div class="flex items-center">
+          <span class="text-gray-600 mr-2">Total:</span>
+          <span class="font-medium text-blue-600"><%= allTests.length %> tests</span>
+        </div>
                 
-                <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="filterComparison" class="mr-1 test-filter" checked data-type="Komparasi">
-                        <label for="filterComparison" class="text-sm text-gray-600">Komparasi Files</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="filterTestCase" class="mr-1 test-filter" checked data-type="Test Case">
-                        <label for="filterTestCase" class="text-sm text-gray-600">Test Cases</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="filterCsvComparison" class="mr-1 test-filter" checked data-type="CSV/TXT">
-                        <label for="filterCsvComparison" class="text-sm text-gray-600">CSV/TXT</label>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="filterNonIso" class="mr-1 test-filter" checked data-type="Non-ISO">
-                        <label for="filterNonIso" class="text-sm text-gray-600">Non-ISO</label>
-                    </div>
-                </div>
-                
-                <div class="relative w-full sm:w-64">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Cari Test..." 
-                    >
-                    <div class="absolute left-3 top-2.5 text-gray-400">
-                        <i class="fas fa-search"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="relative w-full sm:w-64">
+          <input 
+            type="text" 
+            id="searchInput" 
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
+            placeholder="Cari Test..." 
+          >
         </div>
-        
-        <div class="responsive-table">
-            <table class="min-w-full divide-y divide-gray-200" id="historyTable">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
-                        <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Test</th>
-                        <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Dibuat Oleh</th>
-                        <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Tanggal</th>
-                        <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Informasi</th>
-                        <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <% if (allTests && allTests.length > 0) { %>
-                        <% allTests.forEach(test => { %>
-                            <tr class="hover:bg-gray-50 test-row" data-type="<%= test.type.toLowerCase() %>">
-                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm">
-                                    <% if (test.type === 'Komparasi' || test.type === 'comparison') { %>
-                                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                                            <span class="hidden sm:inline">Komparasi</span>
-                                            <span class="sm:hidden">K</span>
-                                        </span>
-                                    <% } else if (test.type === 'Test Case' || test.type === 'testcase') { %>
-                                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                            <span class="hidden sm:inline">Test Case</span>
-                                            <span class="sm:hidden">T</span>
-                                        </span>
-                                    <% } else if (test.type === 'CSV/TXT' || test.type === 'csvcomparison') { %>
-                                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
-                                            <span class="hidden sm:inline">CSV/TXT</span>
-                                            <span class="sm:hidden">C</span>
-                                        </span>
-                                    <% } else if (test.type === 'Non-ISO' || test.type === 'noniso') { %>
-                                        <span class="inline-block px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800">
-                                            <span class="hidden sm:inline">Non-ISO</span>
-                                            <span class="sm:hidden">N</span>
-                                        </span>
-                                    <% } %>
-                                </td>
-                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <div class="truncate max-w-[100px] sm:max-w-[150px] md:max-w-xs" title="<%= test.name %>">
-                                        <%= test.name %>
-                                    </div>
-                                    
-                                    <!-- Mobile-only creator info -->
-                                    <div class="text-xs text-gray-500 md:hidden">
-                                        <% if (test.creator) { %>
-                                            By: <%= test.creator.name || test.creator.username || 'Unknown' %>
-                                        <% } else { %>
-                                            By: System
-                                        <% } %>
-                                    </div>
-                                    
-                                    <!-- Mobile-only date -->
-                                    <div class="text-xs text-gray-500 sm:hidden">
-                                        <%= typeof formatDate === 'function' ? formatDate(test.createdAt).split(' ')[0] : new Date(test.createdAt).toLocaleDateString('id-ID') %>
-                                    </div>
-                                </td>
-                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                                    <% if (test.creator) { %>
-                                        <%= test.creator.name || test.creator.username || 'Unknown' %>
-                                    <% } else { %>
-                                        System
-                                    <% } %>
-                                </td>
-                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
-                                    <%= typeof formatDate === 'function' ? formatDate(test.createdAt) : new Date(test.createdAt).toLocaleString('id-ID') %>
-                                </td>
-                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500">
-                                    <%- include('partials/history-test-info', { test: test, formatFileSize: formatFileSize || function(size) { 
-                                        // Fallback formatFileSize function
-                                        if (size === 0) return '0 Bytes';
-                                        const k = 1024;
-                                        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                                        const i = Math.floor(Math.log(size) / Math.log(k));
-                                        return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                                    } }) %>
-                                </td>
-                                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500">
-                                    <div class="flex space-x-1 sm:space-x-2">
-                                        <!-- Determine what type of test this is -->
-                                        <% 
-                                        const typeStr = String(test.type).toLowerCase();
-                                        %>
-                                        
-                                        <!-- View button - all types have this -->
-                                        <% if (typeStr.includes('noniso') || typeStr === 'non-iso') { %>
-                                            <a href="/non-iso-comparison/results/<%= test.id %>" class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        <% } else if (typeStr.includes('testcase') || typeStr === 'test case') { %>
-                                            <a href="/test-cases/<%= test.id %>" class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        <% } else if (typeStr.includes('csv') || typeStr.includes('txt')) { %>
-                                            <a href="/csv-comparison/results/<%= test.id %>" class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        <% } else { %>
-                                            <a href="/comparison/<%= test.id %>" class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        <% } %>
-                                        
-                                        <!-- Download button -->
-                                        <% if (typeStr.includes('noniso') || typeStr === 'non-iso') { %>
-                                            <a href="/non-iso-comparison/download/<%= test.id %>" class="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                        <% } else if (typeStr.includes('testcase') || typeStr === 'test case') { %>
-                                            <a href="/test-cases/<%= test.id %>/download" class="text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-100" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                        <% } else if (typeStr.includes('csv') || typeStr.includes('txt')) { %>
-                                            <a href="/csv-comparison/download/<%= test.id %>" class="text-purple-600 hover:text-purple-800 p-1 rounded-full hover:bg-purple-100" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                        <% } else { %>
-                                            <button onclick="downloadComparison('<%= test.id %>')" class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </button>
-                                        <% } %>
-                                        
-                                        <!-- Edit button (only for Test Case) -->
-                                        <% if (typeStr.includes('testcase') || typeStr === 'test case') { %>
-                                            <a href="/test-cases/<%= test.id %>/edit" class="text-yellow-600 hover:text-yellow-800 p-1 rounded-full hover:bg-yellow-100" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        <% } %>
-                                        
-                                        <!-- Delete button -->
-                                        <% if (typeStr.includes('noniso') || typeStr === 'non-iso') { %>
-                                            <form action="/non-iso-comparison/<%= test.id %>?_method=DELETE" method="POST" class="inline-block">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete" onclick="return confirm('Are you sure you want to delete this item?');">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        <% } else if (typeStr.includes('testcase') || typeStr === 'test case') { %>
-                                            <form action="/test-cases/<%= test.id %>?_method=DELETE" method="POST" class="inline-block">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete" onclick="return confirm('Are you sure you want to delete this item?');">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        <% } else if (typeStr.includes('csv') || typeStr.includes('txt')) { %>
-                                            <form action="/csv-comparison/<%= test.id %>?_method=DELETE" method="POST" class="inline-block">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete" onclick="return confirm('Are you sure you want to delete this item?');">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        <% } else { %>
-                                            <form action="/api/comparison/<%= test.id %>?_method=DELETE" method="POST" class="inline-block">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100" title="Delete" onclick="return confirm('Are you sure you want to delete this item?');">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        <% } %>
-                                    </div>
-                                </td>
-                            </tr>
-                        <% }); %>
-                    <% } else { %>
-                        <tr>
-                            <td colspan="6" class="px-4 py-6 text-center text-gray-500">
-                                <p>Belum ada riwayat test. Mulai dengan melakukan komparasi atau menambahkan test case!</p>
-                            </td>
-                        </tr>
-                    <% } %>
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="mt-6" id="noResults" style="display: none;">
-            <div class="text-center py-8 text-gray-500">
-                <p>Tidak ada hasil yang sesuai dengan pencarian Anda.</p>
-            </div>
-        </div>
+      </div>
     </div>
+    
+    <div class="responsive-table">
+      <table class="min-w-full divide-y divide-gray-200" id="historyTable">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
+            <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Test</th>
+            <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Dibuat Oleh</th>
+            <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Tanggal</th>
+            <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Informasi</th>
+            <th class="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% if (allTests && allTests.length > 0) { %>
+            <% allTests.forEach(test => { %>
+              <tr class="hover:bg-gray-50 test-row" data-type="<%= test.type %>" data-id="<%= test.id %>">
+                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm">
+                  <% if (test.type === 'comparison') { %>
+                    <span style="background-color: #e6f0ff; color: #1a53ff; padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem;">Komparasi</span>
+                  <% } else if (test.type === 'testcase') { %>
+                    <span style="background-color: #e6ffee; color: #00994d; padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem;">Test Case</span>
+                  <% } else if (test.type === 'csvcomparison') { %>
+                    <span style="background-color: #f2e6ff; color: #7700cc; padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem;">CSV/TXT</span>
+                  <% } else if (test.type === 'noniso') { %>
+                    <span style="background-color: #e6e6ff; color: #0000cc; padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem;">Non-ISO</span>
+                  <% } %>
+                </td>
+                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <div style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<%= test.name %>">
+                    <%= test.name %>
+                  </div>
+                </td>
+                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                  <% if (test.creator) { %>
+                    <%= test.creator.name || test.creator.username || 'Unknown' %>
+                  <% } else { %>
+                    System
+                  <% } %>
+                </td>
+                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                  <%= typeof formatDate === 'function' ? formatDate(test.createdAt) : new Date(test.createdAt).toLocaleString('id-ID') %>
+                </td>
+                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500">
+                  <% if (test.type === 'comparison') { 
+                    // Handle comparison type information
+                    let differences = {};
+                    let count = 0;
+                    
+                    try {
+                      differences = typeof test.data.differences === 'string' 
+                        ? JSON.parse(test.data.differences) 
+                        : test.data.differences || {};
+                      count = Object.keys(differences).length;
+                    } catch (e) {
+                      console.error('Error parsing differences:', e);
+                    }                    
+                  %>
+                    <span style="background-color: <%= count > 0 ? '#ffe6e6' : '#e6ffee' %>; color: <%= count > 0 ? '#cc0000' : '#00994d' %>; padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem;">
+                      <%= count %> perbedaan
+                    </span>
+                  
+                  <% } else if (test.type === 'testcase') { %>
+                    <%= test.data.originalFilename %>
+                  
+                  <% } else if (test.type === 'csvcomparison') { 
+                    let differenceCount = test.data.differenceCount || 0;
+                  %>
+                    <div>
+                      <span style="background-color: <%= differenceCount > 0 ? '#ffe6e6' : '#e6ffee' %>; color: <%= differenceCount > 0 ? '#cc0000' : '#00994d' %>; padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem;">
+                        <%= differenceCount %> perbedaan
+                      </span>
+                    </div>
+                  
+                  <% } else if (test.type === 'noniso') { 
+                    let differenceCount = test.data.differenceCount || 0;
+                  %>
+                    <div>
+                      <span style="background-color: <%= differenceCount > 0 ? '#ffe6e6' : '#e6ffee' %>; color: <%= differenceCount > 0 ? '#cc0000' : '#00994d' %>; padding: 4px 8px; border-radius: 9999px; font-size: 0.75rem;">
+                        <%= differenceCount %> perbedaan
+                      </span>
+                    </div>
+                  <% } %>
+                </td>
+                <td class="px-2 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-sm text-gray-500">
+                  <!-- Action buttons as simple links with text instead of icons -->
+                  <div>
+                    <% if (test.type === 'noniso') { %>
+                      <a href="/non-iso-comparison/results/<%= test.id %>" style="color: blue; margin-right: 5px; text-decoration: underline;">View</a>
+                      <a href="/non-iso-comparison/download/<%= test.id %>" style="color: green; margin-right: 5px; text-decoration: underline;">Download</a>
+                      <form action="/non-iso-comparison/<%= test.id %>?_method=DELETE" method="POST" style="display: inline-block;">
+                        <button type="submit" style="color: red; text-decoration: underline; background: none; border: none; cursor: pointer; padding: 0;" onclick="return confirm('Yakin hapus item ini?');">Delete</button>
+                      </form>
+                      
+                    <% } else if (test.type === 'testcase') { %>
+                      <a href="/test-cases/<%= test.id %>" style="color: blue; margin-right: 5px; text-decoration: underline;">View</a>
+                      <a href="/test-cases/<%= test.id %>/download" style="color: green; margin-right: 5px; text-decoration: underline;">Download</a>
+                      
+                      <% 
+                      // Check if current user can edit this test case
+                      const canEditThisTest = currentUser && (
+                        currentUser.role === 'admin' || 
+                        (test.data && test.data.userId && test.data.userId === currentUser.id)
+                      );
+                      
+                      if (canEditThisTest) { 
+                      %>
+                        <a href="/test-cases/<%= test.id %>/edit" style="color: orange; margin-right: 5px; text-decoration: underline;">Edit</a>
+                        <form action="/test-cases/<%= test.id %>?_method=DELETE" method="POST" style="display: inline-block;">
+                          <button type="submit" style="color: red; text-decoration: underline; background: none; border: none; cursor: pointer; padding: 0;" onclick="return confirm('Yakin hapus test case ini?');">Delete</button>
+                        </form>
+                      <% } %>
+                      
+                    <% } else if (test.type === 'csvcomparison') { %>
+                      <a href="/csv-comparison/results/<%= test.id %>" style="color: blue; margin-right: 5px; text-decoration: underline;">View</a>
+                      <a href="/csv-comparison/download/<%= test.id %>" style="color: green; margin-right: 5px; text-decoration: underline;">Download</a>
+                      <form action="/csv-comparison/<%= test.id %>?_method=DELETE" method="POST" style="display: inline-block;">
+                        <button type="submit" style="color: red; text-decoration: underline; background: none; border: none; cursor: pointer; padding: 0;" onclick="return confirm('Yakin hapus CSV comparison ini?');">Delete</button>
+                      </form>
+                      
+                    <% } else { %>
+                      <a href="/comparison/<%= test.id %>" style="color: blue; margin-right: 5px; text-decoration: underline;">View</a>
+                      <button 
+                        onclick="downloadComparison('<%= test.id %>')" 
+                        style="color: green; margin-right: 5px; text-decoration: underline; background: none; border: none; cursor: pointer; padding: 0;"
+                      >Download</button>
+                      <form action="/api/comparison/<%= test.id %>?_method=DELETE" method="POST" style="display: inline-block;">
+                        <button type="submit" style="color: red; text-decoration: underline; background: none; border: none; cursor: pointer; padding: 0;" onclick="return confirm('Yakin hapus comparison ini?');">Delete</button>
+                      </form>
+                    <% } %>
+                  </div>
+                </td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr>
+              <td colspan="6" class="px-4 py-6 text-center text-gray-500">
+                <p>Belum ada riwayat test. Mulai dengan melakukan komparasi atau menambahkan test case!</p>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="mt-6" id="noResults" style="display: none;">
+      <div class="text-center py-8 text-gray-500">
+        <p>Tidak ada hasil yang sesuai dengan pencarian Anda.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
-<style>
-/* Styles specific for History view */
-.test-row {
-  transition: background-color 0.2s ease;
-}
-
-.test-row:hover {
-  background-color: rgba(243, 244, 246, 0.7);
-}
-
-@media (max-width: 640px) {
-  .test-filter {
-    margin-right: 0.25rem !important;
-  }
-}
-</style>
-
 <script>
-    // Helper function untuk format date jika tidak tersedia dari server
-    function formatDate(date) {
-        if (!date) return '';
-        return new Date(date).toLocaleString('id-ID');
-    }
-    
-    // Helper function untuk format file size jika tidak tersedia dari server
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-  // Find all the rows in the history table
-  const rows = document.querySelectorAll('.test-row');
-  
-  rows.forEach(row => {
-    // Get the actual data-type from the row
-    const dataType = row.getAttribute('data-type') || '';
-    
-    // Get the ID from some element on the page
-    // This is a critical part - we need to find your ID somewhere
-    // Use 'let' instead of 'const' so we can reassign it
-    let id = row.getAttribute('data-id'); 
-    
-    // If we can't find the ID, try to extract it from some text or URL in the row
-    // This is a fallback method
-    if (!id) {
-      // Try to extract ID from any link in the row
-      const links = row.querySelectorAll('a[href]');
-      for (const link of links) {
-        const href = link.getAttribute('href');
-        if (href) {
-          const matches = href.match(/\/(\d+)$/);
-          if (matches && matches[1]) {
-            id = matches[1];
-            break;
-          }
-        }
-      }
-    }
-    
-    // If we still don't have an ID, we can't proceed
-    if (!id) {
-      console.error('Could not find ID for row:', row);
-      return;
-    }
-    
-    // Get the last cell in the row which should be the actions cell
-    const actionsCell = row.cells[row.cells.length - 1];
-    
-    // Clear any existing content in the actions cell
-    actionsCell.innerHTML = '';
-    
-    // Create a container for the action buttons
-    const actionsContainer = document.createElement('div');
-    actionsContainer.className = 'flex space-x-2';
-    
-    // Create the action buttons based on the data-type
-    if (dataType === 'noniso') {
-      // Add view button
-      const viewLink = document.createElement('a');
-      viewLink.href = `/non-iso-comparison/results/${id}`;
-      viewLink.className = 'text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100';
-      viewLink.title = 'View Details';
-      viewLink.innerHTML = '<i class="fas fa-eye"></i>';
-      actionsContainer.appendChild(viewLink);
-      
-      // Add download button
-      const downloadLink = document.createElement('a');
-      downloadLink.href = `/non-iso-comparison/download/${id}`;
-      downloadLink.className = 'text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100';
-      downloadLink.title = 'Download';
-      downloadLink.innerHTML = '<i class="fas fa-download"></i>';
-      actionsContainer.appendChild(downloadLink);
-      
-      // Add delete button/form
-      const deleteForm = document.createElement('form');
-      deleteForm.action = `/non-iso-comparison/${id}?_method=DELETE`;
-      deleteForm.method = 'POST';
-      deleteForm.className = 'inline-block';
-      
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'submit';
-      deleteButton.className = 'text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100';
-      deleteButton.title = 'Delete';
-      deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
-      
-      deleteForm.appendChild(deleteButton);
-      actionsContainer.appendChild(deleteForm);
-    }
-    else if (dataType === 'testcase') {
-      // Add view button
-      const viewLink = document.createElement('a');
-      viewLink.href = `/test-cases/${id}`;
-      viewLink.className = 'text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100';
-      viewLink.title = 'View Details';
-      viewLink.innerHTML = '<i class="fas fa-eye"></i>';
-      actionsContainer.appendChild(viewLink);
-      
-      // Add download button
-      const downloadLink = document.createElement('a');
-      downloadLink.href = `/test-cases/${id}/download`;
-      downloadLink.className = 'text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-100';
-      downloadLink.title = 'Download';
-      downloadLink.innerHTML = '<i class="fas fa-download"></i>';
-      actionsContainer.appendChild(downloadLink);
-      
-      // Add edit button
-      const editLink = document.createElement('a');
-      editLink.href = `/test-cases/${id}/edit`;
-      editLink.className = 'text-yellow-600 hover:text-yellow-800 p-1 rounded-full hover:bg-yellow-100';
-      editLink.title = 'Edit';
-      editLink.innerHTML = '<i class="fas fa-edit"></i>';
-      actionsContainer.appendChild(editLink);
-      
-      // Add delete button/form
-      const deleteForm = document.createElement('form');
-      deleteForm.action = `/test-cases/${id}?_method=DELETE`;
-      deleteForm.method = 'POST';
-      deleteForm.className = 'inline-block';
-      
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'submit';
-      deleteButton.className = 'text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100';
-      deleteButton.title = 'Delete';
-      deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
-      
-      deleteForm.appendChild(deleteButton);
-      actionsContainer.appendChild(deleteForm);
-    }
-    else if (dataType === 'csvcomparison') {
-      // Add view button
-      const viewLink = document.createElement('a');
-      viewLink.href = `/csv-comparison/results/${id}`;
-      viewLink.className = 'text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100';
-      viewLink.title = 'View Details';
-      viewLink.innerHTML = '<i class="fas fa-eye"></i>';
-      actionsContainer.appendChild(viewLink);
-      
-      // Add download button
-      const downloadLink = document.createElement('a');
-      downloadLink.href = `/csv-comparison/download/${id}`;
-      downloadLink.className = 'text-purple-600 hover:text-purple-800 p-1 rounded-full hover:bg-purple-100';
-      downloadLink.title = 'Download';
-      downloadLink.innerHTML = '<i class="fas fa-download"></i>';
-      actionsContainer.appendChild(downloadLink);
-      
-      // Add delete button/form
-      const deleteForm = document.createElement('form');
-      deleteForm.action = `/csv-comparison/${id}?_method=DELETE`;
-      deleteForm.method = 'POST';
-      deleteForm.className = 'inline-block';
-      
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'submit';
-      deleteButton.className = 'text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100';
-      deleteButton.title = 'Delete';
-      deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
-      
-      deleteForm.appendChild(deleteButton);
-      actionsContainer.appendChild(deleteForm);
-    }
-    else {
-      // Default for comparison or unknown types
-      // Add view button
-      const viewLink = document.createElement('a');
-      viewLink.href = `/comparison/${id}`;
-      viewLink.className = 'text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100';
-      viewLink.title = 'View Details';
-      viewLink.innerHTML = '<i class="fas fa-eye"></i>';
-      actionsContainer.appendChild(viewLink);
-      
-      // Add download button (for JSON)
-      const downloadButton = document.createElement('button');
-      downloadButton.className = 'text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100';
-      downloadButton.title = 'Download JSON';
-      downloadButton.innerHTML = '<i class="fas fa-download"></i>';
-      downloadButton.onclick = function() {
-        downloadComparison(id);
-      };
-      actionsContainer.appendChild(downloadButton);
-      
-      // Add delete button/form
-      const deleteForm = document.createElement('form');
-      deleteForm.action = `/api/comparison/${id}?_method=DELETE`;
-      deleteForm.method = 'POST';
-      deleteForm.className = 'inline-block';
-      
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'submit';
-      deleteButton.className = 'text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100';
-      deleteButton.title = 'Delete';
-      deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
-      
-      deleteForm.appendChild(deleteButton);
-      actionsContainer.appendChild(deleteForm);
-    }
-    
-    // Add the actions container to the actions cell
-    actionsCell.appendChild(actionsContainer);
-  });
-  
-  // Function to download comparison JSON
-  window.downloadComparison = function(id) {
+  /**
+   * Download comparison function
+   */
+  function downloadComparison(id) {
     fetch(`/api/comparison/${id}`)
       .then(response => response.json())
       .then(data => {
@@ -478,82 +206,47 @@
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
         } else {
-          alert('Failed to download comparison data.');
+          alert('Failed to download comparison data: ' + (data.message || 'Unknown error'));
         }
       })
       .catch(error => {
         console.error('Error downloading comparison:', error);
-        alert('Failed to download comparison data.');
+        alert('Failed to download comparison data');
       });
-  };
+  }
   
-  // Add confirmation to all delete forms
-  document.querySelectorAll('form[action*="DELETE"]').forEach(form => {
-    form.addEventListener('submit', function(e) {
-      if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
-        e.preventDefault();
-      }
-    });
+  /**
+   * DOM Ready Event Handler
+   */
+  document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const rows = document.querySelectorAll('.test-row');
+    const noResults = document.getElementById('noResults');
+    
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        let foundResults = false;
+        
+        rows.forEach(row => {
+          const testCaseName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+          
+          if (testCaseName.includes(searchTerm)) {
+            row.style.display = '';
+            foundResults = true;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+        
+        // Show/hide no results message
+        if (noResults) {
+          noResults.style.display = foundResults ? 'none' : 'block';
+        }
+      });
+    }
   });
-});
-
-function downloadComparison(id) {
-  fetch(`/api/comparison/${id}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 'success') {
-        // Create JSON file and download
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `comparison-${id}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        alert('Failed to download comparison data.');
-      }
-    })
-    .catch(error => {
-      console.error('Error downloading comparison:', error);
-      alert('Failed to download comparison data.');
-    });
-}
 </script>
 
-<script>
-    // Debug information to understand the test data structure
-    console.log("Debugging test data structure");
-    
-    // Find all test rows and log their data
-    const testRows = document.querySelectorAll('.test-row');
-    testRows.forEach((row, index) => {
-      // Get type
-      const typeCell = row.cells[0];
-      const typeText = typeCell.textContent.trim();
-      
-      // Get name
-      const nameCell = row.cells[1];
-      const nameText = nameCell.textContent.trim();
-      
-      // Try to get the data-id attribute
-      const testId = row.getAttribute('data-id') || 'No ID attribute';
-      
-      // Log all class names and attributes
-      const classList = Array.from(row.classList).join(', ');
-      const attributes = {};
-      Array.from(row.attributes).forEach(attr => {
-        attributes[attr.name] = attr.value;
-      });
-      
-      console.log(`Test ${index}:`, {
-        type: typeText,
-        name: nameText,
-        classList,
-        attributes,
-        rowHTML: row.outerHTML.substring(0, 200) + '...' // First 200 chars of HTML
-      });
-    });
-  </script>
+<%- include('partials/footer') %>
