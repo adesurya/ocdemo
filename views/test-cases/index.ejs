@@ -54,7 +54,7 @@
                                         <% 
                                             // Determine file icon based on file type
                                             let iconClass = 'fa-file';
-                                            const fileType = testCase.fileType.toLowerCase();
+                                            const fileType = testCase.fileType ? testCase.fileType.toLowerCase() : '';
                                             
                                             if (fileType.includes('image')) {
                                                 iconClass = 'fa-file-image';
@@ -75,7 +75,7 @@
                                             <%= testCase.originalFilename %>
                                         </span>
                                         <span class="ml-2 text-xs text-gray-400">
-                                            (<%= formatFileSize(testCase.fileSize) %>)
+                                            (<%= typeof formatFileSize === 'function' ? formatFileSize(testCase.fileSize) : formatFileSizeFallback(testCase.fileSize) %>)
                                         </span>
                                     </div>
                                 </td>
@@ -90,11 +90,16 @@
                                         <a href="/test-cases/<%= testCase.id %>/download" class="text-green-600 hover:text-green-800" title="Download Evidence">
                                             <i class="fas fa-download"></i>
                                         </a>
-                                        <form action="/test-cases/<%= testCase.id %>?_method=DELETE" method="POST" class="inline-block delete-form">
-                                            <button type="submit" class="text-red-600 hover:text-red-800" title="Delete Test Case">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
+                                        <% if (canEdit(locals.user, testCase)) { %>
+                                            <a href="/test-cases/<%= testCase.id %>/edit" class="text-yellow-600 hover:text-yellow-800" title="Edit Test Case">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form action="/test-cases/<%= testCase.id %>?_method=DELETE" method="POST" class="inline-block delete-form">
+                                                <button type="submit" class="text-red-600 hover:text-red-800" title="Delete Test Case">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        <% } %>
                                     </div>
                                 </td>
                             </tr>
@@ -155,8 +160,8 @@
         });
     });
     
-    // Function to format file size
-    function formatFileSize(bytes) {
+    // Function to format file size if not provided by server
+    function formatFileSizeFallback(bytes) {
         if (bytes === 0) return '0 Bytes';
         
         const k = 1024;

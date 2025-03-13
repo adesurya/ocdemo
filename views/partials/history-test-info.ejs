@@ -1,8 +1,18 @@
-<% 
+<%
 /* This partial handles the information display for each test type in the history table */
 if (test.type === 'comparison') { 
-    let differences = JSON.parse(test.data.differences);
-    let count = Object.keys(differences).length;
+    let differences = {};
+    let count = 0;
+    
+    try {
+        differences = typeof test.data.differences === 'string' 
+            ? JSON.parse(test.data.differences) 
+            : test.data.differences || {};
+        count = Object.keys(differences).length;
+    } catch (e) {
+        console.error('Error parsing differences:', e);
+    }
+    
     let badgeClass = count > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
 %>
     <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
@@ -12,7 +22,7 @@ if (test.type === 'comparison') {
 <% } else if (test.type === 'testcase') { 
     // Determine file icon based on file type
     let iconClass = 'fa-file';
-    const fileType = test.data.fileType.toLowerCase();
+    const fileType = test.data.fileType ? test.data.fileType.toLowerCase() : '';
     
     if (fileType.includes('image')) {
         iconClass = 'fa-file-image';
@@ -39,17 +49,18 @@ if (test.type === 'comparison') {
     </div>
 
 <% } else if (test.type === 'csvcomparison') { 
-    let badgeClass = test.data.differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+    let differenceCount = test.data.differenceCount || 0;
+    let badgeClass = differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
 %>
     <div>
         <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
-            <%= test.data.differenceCount %> perbedaan
+            <%= differenceCount %> perbedaan
         </span>
         <div class="text-xs text-gray-500 mt-1">
             <% 
             // Get file extensions for appropriate icons
-            const hpuxExt = test.data.hpuxFileName.split('.').pop().toLowerCase();
-            const linuxExt = test.data.linuxFileName.split('.').pop().toLowerCase();
+            const hpuxExt = test.data.hpuxFileName ? test.data.hpuxFileName.split('.').pop().toLowerCase() : 'txt';
+            const linuxExt = test.data.linuxFileName ? test.data.linuxFileName.split('.').pop().toLowerCase() : 'txt';
             %>
             <i class="fas fa-file-<%= hpuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> HPUX: <%= test.data.hpuxFileName %><br>
             <i class="fas fa-file-<%= linuxExt === 'csv' ? 'csv' : 'alt' %> mr-1"></i> Linux: <%= test.data.linuxFileName %>
@@ -57,11 +68,12 @@ if (test.type === 'comparison') {
     </div>
 
 <% } else if (test.type === 'noniso') { 
-    let badgeClass = test.data.differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+    let differenceCount = test.data.differenceCount || 0;
+    let badgeClass = differenceCount > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
 %>
     <div>
         <span class="px-2 py-1 text-xs rounded-full <%= badgeClass %>">
-            <%= test.data.differenceCount %> perbedaan
+            <%= differenceCount %> perbedaan
         </span>
         <div class="text-xs text-gray-500 mt-1">
             <i class="fas fa-file mr-1"></i> HPUX: <%= test.data.hpuxFileName %><br>
